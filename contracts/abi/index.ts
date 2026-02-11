@@ -1,0 +1,1 @@
+export { SimpleStorage } from "./SimpleStorage"
