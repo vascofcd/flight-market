@@ -16146,7 +16146,7 @@ var onCronTrigger = (runtime2) => {
   const contractCall = evmClient.callContract(runtime2, {
     call: encodeCallMsg({
       from: zeroAddress,
-      to: evmConfig.simpleStorageAddress,
+      to: evmConfig.storageAddress,
       data: callData
     }),
     blockNumber: LAST_FINALIZED_BLOCK_NUMBER

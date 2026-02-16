@@ -11,16 +11,14 @@ import {
   LAST_FINALIZED_BLOCK_NUMBER,
   encodeCallMsg,
   bytesToHex,
-  hexToBase64,
 } from "@chainlink/cre-sdk"
-import { encodeAbiParameters, parseAbiParameters, encodeFunctionData, decodeFunctionResult, zeroAddress } from "viem"
-import { Storage } from "../contracts/abi"
+import { encodeFunctionData, decodeFunctionResult, zeroAddress } from "viem"
+import { SimpleStorage } from "../../contracts/abi"
 
+// EvmConfig defines the configuration for a single EVM chain.
 type EvmConfig = {
-  chainName: string
   storageAddress: string
-  calculatorConsumerAddress: string
-  gasLimit: string
+  chainName: string
 }
 
 type Config = {
@@ -29,12 +27,8 @@ type Config = {
   evms: EvmConfig[]
 }
 
-// MyResult struct now holds all the outputs of our workflow.
 type MyResult = {
-  offchainValue: bigint
-  onchainValue: bigint
   finalResult: bigint
-  txHash: string
 }
 
 const initWorkflow = (config: Config) => {
@@ -43,81 +37,7 @@ const initWorkflow = (config: Config) => {
   return [handler(cron.trigger({ schedule: config.schedule }), onCronTrigger)]
 }
 
-const onCronTrigger = (runtime: Runtime<Config>): MyResult => {
-  const evmConfig = runtime.config.evms[0]
-
-  // Convert the human-readable chain name to a chain selector
-  const network = getNetwork({
-    chainFamily: "evm",
-    chainSelectorName: evmConfig.chainName,
-    isTestnet: true,
-  })
-  if (!network) {
-    throw new Error(`Unknown chain name: ${evmConfig.chainName}`)
-  }
-
-  // Step 1: Fetch offchain data
-  const offchainValue = runtime.runInNodeMode(fetchMathResult, consensusMedianAggregation())().result()
-
-  runtime.log(`Successfully fetched offchain value: ${offchainValue}`)
-
-  // Step 2: Read onchain data using the EVM client
-  const evmClient = new EVMClient(network.chainSelector.selector)
-
-  const callData = encodeFunctionData({
-    abi: Storage,
-    functionName: "get",
-  })
-
-  const contractCall = evmClient
-    .callContract(runtime, {
-      call: encodeCallMsg({
-        from: zeroAddress,
-        to: evmConfig.storageAddress as `0x${string}`,
-        data: callData,
-      }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
-    })
-    .result()
-
-  const onchainValue = decodeFunctionResult({
-    abi: Storage,
-    functionName: "get",
-    data: bytesToHex(contractCall.data),
-  }) as bigint
-
-  runtime.log(`Successfully read onchain value: ${onchainValue}`)
-
-  // Step 3: Calculate the final result
-  const finalResultValue = onchainValue + offchainValue
-
-  runtime.log(`Final calculated result: ${finalResultValue}`)
-
-  // Step 4: Write the result to the consumer contract
-  const txHash = updateCalculatorResult(
-    runtime,
-    network.chainSelector.selector,
-    evmConfig,
-    offchainValue,
-    onchainValue,
-    finalResultValue
-  )
-
-  // Step 5: Log and return the final, consolidated result.
-  const finalWorkflowResult: MyResult = {
-    offchainValue,
-    onchainValue,
-    finalResult: finalResultValue,
-    txHash,
-  }
-
-  runtime.log(
-    `Workflow finished successfully! offchainValue: ${offchainValue}, onchainValue: ${onchainValue}, finalResult: ${finalResultValue}, txHash: ${txHash}`
-  )
-
-  return finalWorkflowResult
-}
-
+// fetchMathResult is the function passed to the runInNodeMode helper.
 const fetchMathResult = (nodeRuntime: NodeRuntime<Config>): bigint => {
   const httpClient = new HTTPClient()
 
@@ -133,56 +53,62 @@ const fetchMathResult = (nodeRuntime: NodeRuntime<Config>): bigint => {
   return val
 }
 
-// updateCalculatorResult handles the logic for writing data to the CalculatorConsumer contract.
-function updateCalculatorResult(
-  runtime: Runtime<Config>,
-  chainSelector: bigint,
-  evmConfig: EvmConfig,
-  offchainValue: bigint,
-  onchainValue: bigint,
-  finalResult: bigint
-): string {
-  runtime.log(`Updating calculator result for consumer: ${evmConfig.calculatorConsumerAddress}`)
+const onCronTrigger = (runtime: Runtime<Config>): MyResult => {
+  // Step 1: Fetch offchain data (from Part 2)
+  const offchainValue = runtime.runInNodeMode(fetchMathResult, consensusMedianAggregation())().result()
 
-  const evmClient = new EVMClient(chainSelector)
+  runtime.log(`Successfully fetched offchain value: ${offchainValue}`)
 
-  // Encode the CalculatorResult struct according to the contract's ABI
-  const reportData = encodeAbiParameters(
-    parseAbiParameters("uint256 offchainValue, int256 onchainValue, uint256 finalResult"),
-    [offchainValue, onchainValue, finalResult]
-  )
+  // Get the first EVM configuration from the list.
+  const evmConfig = runtime.config.evms[0]
 
-  runtime.log(
-    `Writing report to consumer contract - offchainValue: ${offchainValue}, onchainValue: ${onchainValue}, finalResult: ${finalResult}`
-  )
+  // Step 2: Read onchain data using the EVM client
+  // Convert the human-readable chain name to a chain selector
+  const network = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainName,
+    isTestnet: true,
+  })
+  if (!network) {
+    throw new Error(`Unknown chain name: ${evmConfig.chainName}`)
+  }
 
-  // Step 1: Generate a signed report using the consensus capability
-  const reportResponse = runtime
-    .report({
-      encodedPayload: hexToBase64(reportData),
-      encoderName: "evm",
-      signingAlgo: "ecdsa",
-      hashingAlgo: "keccak256",
+  const evmClient = new EVMClient(network.chainSelector.selector)
+
+  // Encode the function call using the Storage ABI
+  const callData = encodeFunctionData({
+    abi: SimpleStorage,
+    functionName: "get",
+  })
+
+  // Call the contract
+  const contractCall = evmClient
+    .callContract(runtime, {
+      call: encodeCallMsg({
+        from: zeroAddress,
+        to: evmConfig.storageAddress as `0x${string}`,
+        data: callData,
+      }),
+      blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
     })
     .result()
 
-  // Step 2: Submit the report to the consumer contract
-  const writeReportResult = evmClient
-    .writeReport(runtime, {
-      receiver: evmConfig.calculatorConsumerAddress,
-      report: reportResponse,
-      gasConfig: {
-        gasLimit: evmConfig.gasLimit,
-      },
-    })
-    .result()
+  // Decode the result
+  const onchainValue = decodeFunctionResult({
+    abi: SimpleStorage,
+    functionName: "get",
+    data: bytesToHex(contractCall.data),
+  }) as bigint
 
-  runtime.log("Waiting for write report response")
+  runtime.log(`Successfully read onchain value: ${onchainValue}`)
 
-  const txHash = bytesToHex(writeReportResult.txHash || new Uint8Array(32))
-  runtime.log(`Write report transaction succeeded: ${txHash}`)
-  runtime.log(`View transaction at https://sepolia.etherscan.io/tx/${txHash}`)
-  return txHash
+  // Step 3: Combine the results
+  const finalResult = onchainValue + offchainValue
+  runtime.log(`Final calculated result: ${finalResult}`)
+
+  return {
+    finalResult,
+  }
 }
 
 export async function main() {
