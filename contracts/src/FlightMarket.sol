@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract FlightMarket {
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {
+    ReentrancyGuard
+} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+//** @todo
+contract FlightMarket is ReentrancyGuard, Ownable {
     // -------------------------------------------------------------------------
     // Constants
     // -------------------------------------------------------------------------
@@ -40,9 +46,9 @@ contract FlightMarket {
     event MarketCreated(
         uint256 indexed marketId,
         string flightId,
-        uint64 departTs,
-        uint32 thresholdMin,
-        uint64 closeTs
+        uint256 departTs,
+        uint256 thresholdMin,
+        uint256 closeTs
     );
 
     event PositionBought(
@@ -52,18 +58,17 @@ contract FlightMarket {
         uint256 amount
     );
 
-    /// @dev CRE workflow listens to this event.
     event SettlementRequested(
         uint256 indexed marketId,
         string flightId,
-        uint64 departTs,
-        uint32 thresholdMin
+        uint256 departTs,
+        uint256 thresholdMin
     );
 
     event MarketResolved(
         uint256 indexed marketId,
         bool delayed,
-        uint32 delayMinutes,
+        uint256 delayMinutes,
         bytes32 evidenceHash
     );
 
@@ -83,54 +88,33 @@ contract FlightMarket {
     // -------------------------------------------------------------------------
 
     struct Market {
-        // Immutable-ish market parameters
-        string flightId; // e.g., "KL123"
-        uint64 departTs; // scheduled departure (unix seconds)
-        uint64 closeTs; // trading close time (unix seconds)
-        uint32 thresholdMin; // delay threshold in minutes
-        // Pools
+        string flightId;
+        uint256 departTs;
+        uint256 closeTs;
+        uint256 thresholdMin;
         uint256 yesPool;
         uint256 noPool;
-        // Settlement lifecycle
-        uint64 settlementRequestedTs; // 0 if not requested
+        uint256 settlementRequestedTs;
         bool resolved;
-        // Resolution result
-        bool delayed; // outcome
-        uint32 delayMinutes; // computed delay
-        bytes32 evidenceHash; // keccak256(canonical evidence pack JSON)
+        bool delayed;
+        uint256 delayMinutes;
+        bytes32 evidenceHash;
     }
 
-    address public owner;
     address public forwarder;
 
     uint256 public nextMarketId = 1;
+    
     mapping(uint256 => Market) private markets;
-
-    // User positions per market
     mapping(uint256 => mapping(address => uint256)) public yesStake;
     mapping(uint256 => mapping(address => uint256)) public noStake;
     mapping(uint256 => mapping(address => bool)) public claimed;
-
-    // Reentrancy guard (minimal)
-    uint256 private _locked = 1;
-    modifier nonReentrant() {
-        require(_locked == 1, "REENTRANCY");
-        _locked = 2;
-        _;
-        _locked = 1;
-    }
-
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
-        _;
-    }
 
     // -------------------------------------------------------------------------
     // Constructor / Admin
     // -------------------------------------------------------------------------
 
-    constructor(address _forwarder) {
-        owner = msg.sender;
+    constructor(address _forwarder) Ownable(msg.sender){
         forwarder = _forwarder;
     }
 
@@ -146,18 +130,18 @@ contract FlightMarket {
 
     function createMarket(
         string calldata flightId,
-        uint64 departTs,
-        uint32 thresholdMin,
-        uint64 closeTs
+        uint256 departTs,
+        uint256 thresholdMin,
+        uint256 closeTs
     ) external returns (uint256 marketId) {
         if (bytes(flightId).length == 0) revert InvalidCloseTime();
         if (thresholdMin == 0) revert InvalidCloseTime();
 
         // Must close before departure, and at least cutoff before departure.
         // Also must be in the future.
-        if (closeTs <= uint64(block.timestamp)) revert InvalidCloseTime();
+        if (closeTs <= uint256(block.timestamp)) revert InvalidCloseTime();
         if (closeTs >= departTs) revert InvalidCloseTime();
-        if (departTs <= uint64(block.timestamp)) revert InvalidCloseTime();
+        if (departTs <= uint256(block.timestamp)) revert InvalidCloseTime();
 
         uint256 cutoffOkAfter = uint256(departTs) - TRADING_CUTOFF_SECONDS;
         if (uint256(closeTs) > cutoffOkAfter) revert InvalidCloseTime();
@@ -180,15 +164,15 @@ contract FlightMarket {
         view
         returns (
             string memory flightId,
-            uint64 departTs,
-            uint32 thresholdMin,
-            uint64 closeTs,
+            uint256 departTs,
+            uint256 thresholdMin,
+            uint256 closeTs,
             uint256 yesPool,
             uint256 noPool,
-            uint64 settlementRequestedTs,
+            uint256 settlementRequestedTs,
             bool resolved,
             bool delayed,
-            uint32 delayMinutes,
+            uint256 delayMinutes,
             bytes32 evidenceHash
         )
     {
@@ -241,7 +225,7 @@ contract FlightMarket {
         Market storage m = markets[marketId];
         if (m.departTs == 0) revert MarketNotFound();
         if (m.resolved) revert MarketAlreadyResolved();
-        if (uint64(block.timestamp) >= m.closeTs) revert MarketClosed();
+        if (uint256(block.timestamp) >= m.closeTs) revert MarketClosed();
 
         // Enforce per-wallet cap across both sides
         uint256 current = yesStake[marketId][msg.sender] +
@@ -272,10 +256,10 @@ contract FlightMarket {
         Market storage m = markets[marketId];
         if (m.departTs == 0) revert MarketNotFound();
         if (m.resolved) revert MarketAlreadyResolved();
-        if (uint64(block.timestamp) < m.closeTs) revert MarketNotClosed();
+        if (uint256(block.timestamp) < m.closeTs) revert MarketNotClosed();
         if (m.settlementRequestedTs != 0) revert SettlementAlreadyRequested();
 
-        m.settlementRequestedTs = uint64(block.timestamp);
+        m.settlementRequestedTs = block.timestamp;
 
         emit SettlementRequested(
             marketId,
@@ -297,10 +281,10 @@ contract FlightMarket {
 
         // report can be either:
         //  - abi.encode(uint256 marketId, bool delayed)                         => 64 bytes
-        //  - abi.encode(uint256 marketId, bool delayed, uint32 delay, bytes32 hash) => 128 bytes
+        //  - abi.encode(uint256 marketId, bool delayed, uint256 delay, bytes32 hash) => 128 bytes
         uint256 marketId;
         bool delayed;
-        uint32 delayMinutes;
+        uint256 delayMinutes;
         bytes32 evidenceHash;
 
         if (report.length == 64) {
@@ -310,7 +294,7 @@ contract FlightMarket {
         } else if (report.length == 128) {
             (marketId, delayed, delayMinutes, evidenceHash) = abi.decode(
                 report,
-                (uint256, bool, uint32, bytes32)
+                (uint256, bool, uint256, bytes32)
             );
         } else {
             revert BadReport();
@@ -393,7 +377,7 @@ contract FlightMarket {
     function isOpen(uint256 marketId) external view returns (bool) {
         Market storage m = markets[marketId];
         if (m.departTs == 0) return false;
-        return (!m.resolved) && (uint64(block.timestamp) < m.closeTs);
+        return (!m.resolved) && (uint256(block.timestamp) < m.closeTs);
     }
 
     function totalPool(uint256 marketId) external view returns (uint256) {
