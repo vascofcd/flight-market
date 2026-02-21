@@ -15,6 +15,15 @@
 #     secrets-path: "../secrets.yaml"       # Path to secrets file (project root by default)
 
 # ==========================================================================
+local-simulation:
+  user-workflow:
+    workflow-name: "prediction-market-demo"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.json"
+    secrets-path: "../secrets.yaml"
+    
+# ==========================================================================
 staging-settings:
   user-workflow:
     workflow-name: "flight-market-workflow-staging"

@@ -5,15 +5,20 @@ import {
   bytesToHex,
   EVMLog,
   cre,
+  consensusMedianAggregation,
+  HTTPClient,
+  NodeRuntime,
 } from "@chainlink/cre-sdk"
 import { parseAbi, decodeEventLog, keccak256, toHex } from "viem"
-import { type Config, configSchema } from "./types";
+import { type Config, configSchema, FlightAPIResponse } from "./types";
 import { fetchFlight } from "./fetchFlight";
 
 const eventAbi = parseAbi(["event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"]);
 const eventSignature = "SettlementRequested(uint256,string,uint256,uint256)";
 
-const onLogTrigger = async (runtime: Runtime<Config>, log: EVMLog): Promise<string> => {
+
+
+const onLogTrigger = (runtime: Runtime<Config>, log: EVMLog): string => {
   try {
     // ========================================
     // Step 1: Decode Event Log
@@ -31,11 +36,14 @@ const onLogTrigger = async (runtime: Runtime<Config>, log: EVMLog): Promise<stri
     // ========================================
     // Step 2: Fetch Api
     // ========================================
-    const result = await fetchFlight();
+
+
+    const result: FlightAPIResponse = fetchFlight(runtime);
+    // const result: FlightAPIResponse = {rawJsonString: "{}", statusCode: 200};
 
     runtime.log(`Successfully sent data to API. Status: ${result.statusCode}`);
-    runtime.log(`Response for market: ${result}`);
-    
+    runtime.log(`Raw JSON String for market: ${result.rawJsonString}`);
+
     return "Settlement Request Processed";
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -62,7 +70,6 @@ const initWorkflow = (config: Config) => {
   return [
     cre.handler(
       evmClient.logTrigger({
-        addresses: [config.evms[0].marketAddress],
         topics: [{ values: [requestSettlementHash] }],
         confidence: "CONFIDENCE_LEVEL_FINALIZED",
       }),

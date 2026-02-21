@@ -10,8 +10,6 @@ import { z } from "zod";
  */
 const evmConfigSchema = z.object({
     chainSelectorName: z.string().min(1),
-    marketAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/u, "marketAddress must be a 0x-prefixed 20-byte hex"),
-    // Gas limit must be a numeric string (parsed from JSON config)
     gasLimit: z
         .string()
         .regex(/^\d+$/, "gasLimit must be a numeric string")
@@ -23,9 +21,16 @@ const evmConfigSchema = z.object({
  * Validates Gemini model name and array of EVM configurations.
  */
 export const configSchema = z.object({
-    geminiModel: z.string(),
     evms: z.array(evmConfigSchema).min(1, "At least one EVM config is required"),
 });
 
 /** Type inferred from the validated config schema. */
 export type Config = z.infer<typeof configSchema>;
+
+/**
+ * Response from the Flight API HTTP request.
+ */
+export type FlightAPIResponse = {
+  statusCode: number;
+  rawJsonString: string; 
+};

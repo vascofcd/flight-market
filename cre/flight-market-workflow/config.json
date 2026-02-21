@@ -1,0 +1,8 @@
+{
+  "evms": [
+    {
+      "chainSelectorName": "ethereum-testnet-sepolia",
+      "gasLimit": "1000000"
+    }
+  ]
+}
