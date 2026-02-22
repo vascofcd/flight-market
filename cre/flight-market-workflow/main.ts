@@ -4,10 +4,7 @@ import {
   getNetwork,
   bytesToHex,
   EVMLog,
-  cre,
-  consensusMedianAggregation,
-  HTTPClient,
-  NodeRuntime,
+  cre
 } from "@chainlink/cre-sdk"
 import { parseAbi, decodeEventLog, keccak256, toHex } from "viem"
 import { type Config, configSchema, FlightAPIResponse } from "./types";
@@ -15,8 +12,6 @@ import { fetchFlight } from "./fetchFlight";
 
 const eventAbi = parseAbi(["event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"]);
 const eventSignature = "SettlementRequested(uint256,string,uint256,uint256)";
-
-
 
 const onLogTrigger = (runtime: Runtime<Config>, log: EVMLog): string => {
   try {
@@ -65,12 +60,13 @@ const initWorkflow = (config: Config) => {
 
   const evmClient = new cre.capabilities.EVMClient(network.chainSelector.selector);
 
-  const requestSettlementHash = keccak256(toHex(eventSignature));
+  // const requestSettlementHash = keccak256(toHex(eventSignature));
 
   return [
     cre.handler(
       evmClient.logTrigger({
-        topics: [{ values: [requestSettlementHash] }],
+        addresses: [config.evms[0].flightMarketAddress],
+        // topics: [{ values: [requestSettlementHash] }],
         confidence: "CONFIDENCE_LEVEL_FINALIZED",
       }),
       onLogTrigger

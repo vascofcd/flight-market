@@ -10,6 +10,7 @@ import { z } from "zod";
  */
 const evmConfigSchema = z.object({
     chainSelectorName: z.string().min(1),
+    flightMarketAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/u, "flightMarketAddress must be a 0x-prefixed 20-byte hex"),
     gasLimit: z
         .string()
         .regex(/^\d+$/, "gasLimit must be a numeric string")
@@ -31,6 +32,6 @@ export type Config = z.infer<typeof configSchema>;
  * Response from the Flight API HTTP request.
  */
 export type FlightAPIResponse = {
-  statusCode: number;
-  rawJsonString: string; 
+    statusCode: number;
+    rawJsonString: string;
 };
