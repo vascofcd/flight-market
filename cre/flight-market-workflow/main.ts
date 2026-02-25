@@ -33,8 +33,19 @@ const onLogTrigger = (runtime: Runtime<Config>, log: EVMLog): string => {
     // ========================================
 
 
-    const result: FlightAPIResponse = fetchFlight(runtime);
-    // const result: FlightAPIResponse = {rawJsonString: "{}", statusCode: 200};
+    const result: FlightAPIResponse = {
+      statusCode: 200,
+      rawJsonString: JSON.stringify({
+        flightNumber: "KL1234",
+        date: "2026-02-25",
+        scheduledDepartureUtc: "2026-02-25T10:20:00Z",
+        actualDepartureUtc: "2026-02-25T11:05:00Z",
+        delayMinutes: 45,
+        source: "mock",
+      }),
+    };
+
+    // const result: FlightAPIResponse = fetchFlight(runtime);
 
     runtime.log(`Successfully sent data to API. Status: ${result.statusCode}`);
     runtime.log(`Raw JSON String for market: ${result.rawJsonString}`);

@@ -254,10 +254,10 @@ contract FlightMarket is ReentrancyGuard, Ownable {
 
     function requestSettlement(uint256 marketId) external {
         Market storage m = markets[marketId];
-        if (m.departTs == 0) revert MarketNotFound();
-        if (m.resolved) revert MarketAlreadyResolved();
-        if (uint256(block.timestamp) < m.closeTs) revert MarketNotClosed();
-        if (m.settlementRequestedTs != 0) revert SettlementAlreadyRequested();
+        // if (m.departTs == 0) revert MarketNotFound();
+        // if (m.resolved) revert MarketAlreadyResolved();
+        // if (uint256(block.timestamp) < m.closeTs) revert MarketNotClosed();
+        // if (m.settlementRequestedTs != 0) revert SettlementAlreadyRequested();
 
         m.settlementRequestedTs = block.timestamp;
 
@@ -279,9 +279,6 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     ) external {
         if (msg.sender != forwarder) revert OnlyForwarder();
 
-        // report can be either:
-        //  - abi.encode(uint256 marketId, bool delayed)                         => 64 bytes
-        //  - abi.encode(uint256 marketId, bool delayed, uint256 delay, bytes32 hash) => 128 bytes
         uint256 marketId;
         bool delayed;
         uint256 delayMinutes;
@@ -301,11 +298,10 @@ contract FlightMarket is ReentrancyGuard, Ownable {
         }
 
         Market storage m = markets[marketId];
-        if (m.departTs == 0) revert MarketNotFound();
-        if (m.resolved) revert MarketAlreadyResolved();
+        // if (m.departTs == 0) revert MarketNotFound();
+        // if (m.resolved) revert MarketAlreadyResolved();
 
-        // Optional: require settlement requested first
-        if (m.settlementRequestedTs == 0) revert BadReport();
+        // if (m.settlementRequestedTs == 0) revert BadReport();
 
         m.resolved = true;
         m.delayed = delayed;

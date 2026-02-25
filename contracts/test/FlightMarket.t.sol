@@ -61,7 +61,7 @@ contract FlightMarketTest is Test {
         assertEq(marketId, 1);
 
         // -------------------------------------------------------------------------
-        // Buy a yes share
+        // Buy yes/no shares
         // -------------------------------------------------------------------------
         uint256 amount = 0.1 ether;
 
