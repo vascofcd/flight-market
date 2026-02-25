@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
     ReentrancyGuard
 } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -104,7 +104,7 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     address public forwarder;
 
     uint256 public nextMarketId = 1;
-    
+
     mapping(uint256 => Market) private markets;
     mapping(uint256 => mapping(address => uint256)) public yesStake;
     mapping(uint256 => mapping(address => uint256)) public noStake;
@@ -114,7 +114,7 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     // Constructor / Admin
     // -------------------------------------------------------------------------
 
-    constructor(address _forwarder) Ownable(msg.sender){
+    constructor(address _forwarder) Ownable(msg.sender) {
         forwarder = _forwarder;
     }
 
@@ -324,7 +324,7 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     ) external nonReentrant returns (uint256 payout) {
         Market storage m = markets[marketId];
         if (m.departTs == 0) revert MarketNotFound();
-        if (!m.resolved) revert MarketNotClosed(); // reuse error: not resolved yet
+        if (!m.resolved) revert MarketNotClosed(); //@todo reuse error: not resolved yet
         if (claimed[marketId][msg.sender]) revert NothingToClaim();
 
         uint256 y = yesStake[marketId][msg.sender];
@@ -362,7 +362,7 @@ contract FlightMarket is ReentrancyGuard, Ownable {
             }
         }
 
-        if (payout == 0) revert NothingToClaim();
+        // if (payout == 0) revert NothingToClaim();
 
         (bool ok, ) = msg.sender.call{value: payout}("");
         require(ok, "TRANSFER_FAILED");
@@ -384,6 +384,14 @@ contract FlightMarket is ReentrancyGuard, Ownable {
         Market storage m = markets[marketId];
         if (m.departTs == 0) revert MarketNotFound();
         return m.yesPool + m.noPool;
+    }
+
+    // @todo: this method is a helper, delete later
+    function setMarketResolved(uint256 marketId) public {
+        Market storage m = markets[marketId];
+        m.resolved = true;
+        m.delayed = true;
+        m.yesPool = 1 ether;
     }
 
     receive() external payable {}
