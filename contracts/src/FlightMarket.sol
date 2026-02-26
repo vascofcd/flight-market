@@ -4,15 +4,10 @@ pragma solidity ^0.8.20;
 import {
     ReentrancyGuard
 } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {
-    SafeERC20
-} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReceiverTemplate} from "./ReceiverTemplate.sol";
 
 //** @todo
 contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
-    using SafeERC20 for IERC20;
 
     uint256 public constant TRADING_CUTOFF_SECONDS = 2 hours;
     uint256 public constant MAX_STAKE_PER_WALLET_PER_MARKET = 2 ether;
@@ -100,8 +95,6 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
 
     uint256 public nextMarketId = 1;
 
-    IERC20 public immutable paymentToken;
-
     mapping(uint256 => Market) private markets;
     mapping(uint256 => mapping(address => uint256)) public yesStake;
     mapping(uint256 => mapping(address => uint256)) public noStake;
@@ -113,9 +106,8 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
 
     constructor(
         address token,
-        address forwarderAddress
-    ) ReceiverTemplate(forwarderAddress) {
-        paymentToken = IERC20(token);
+        address _forwarderAddress
+    ) ReceiverTemplate(_forwarderAddress) {
     }
 
     // -------------------------------------------------------------------------
