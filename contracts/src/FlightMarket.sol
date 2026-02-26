@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {
     ReentrancyGuard
 } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {
+    SafeERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReceiverTemplate} from "./ReceiverTemplate.sol";
 
 //** @todo
-contract FlightMarket is ReentrancyGuard, Ownable {
-    // -------------------------------------------------------------------------
-    // Constants
-    // -------------------------------------------------------------------------
+contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
-    /// @dev Trading must close at least this many seconds before scheduled departure.
     uint256 public constant TRADING_CUTOFF_SECONDS = 2 hours;
-
-    /// @dev Per-wallet max stake (across YES+NO) per market.
     uint256 public constant MAX_STAKE_PER_WALLET_PER_MARKET = 2 ether;
-
-    /// @dev Per-market max total pool size (YES+NO).
     uint256 public constant MAX_TOTAL_POOL_PER_MARKET = 50 ether;
 
     // -------------------------------------------------------------------------
@@ -101,9 +98,9 @@ contract FlightMarket is ReentrancyGuard, Ownable {
         bytes32 evidenceHash;
     }
 
-    address public forwarder;
-
     uint256 public nextMarketId = 1;
+
+    IERC20 public immutable paymentToken;
 
     mapping(uint256 => Market) private markets;
     mapping(uint256 => mapping(address => uint256)) public yesStake;
@@ -111,17 +108,14 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     mapping(uint256 => mapping(address => bool)) public claimed;
 
     // -------------------------------------------------------------------------
-    // Constructor / Admin
+    // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(address _forwarder) Ownable(msg.sender) {
-        forwarder = _forwarder;
-    }
-
-    function setForwarder(address _forwarder) external onlyOwner {
-        address old = forwarder;
-        forwarder = _forwarder;
-        emit ForwarderUpdated(old, _forwarder);
+    constructor(
+        address token,
+        address forwarderAddress
+    ) ReceiverTemplate(forwarderAddress) {
+        paymentToken = IERC20(token);
     }
 
     // -------------------------------------------------------------------------
@@ -134,15 +128,24 @@ contract FlightMarket is ReentrancyGuard, Ownable {
         uint256 thresholdMin,
         uint256 closeTs
     ) external returns (uint256 marketId) {
+        //@todo Improve errors
+
+        // The flight needs a name
         if (bytes(flightId).length == 0) revert InvalidCloseTime();
+
+        // The delay threshold can’t be zero
         if (thresholdMin == 0) revert InvalidCloseTime();
 
-        // Must close before departure, and at least cutoff before departure.
-        // Also must be in the future.
+        // Betting can’t close in the past (or right now)
         if (closeTs <= uint256(block.timestamp)) revert InvalidCloseTime();
+
+        // Betting must close before the flight departs
         if (closeTs >= departTs) revert InvalidCloseTime();
+
+        // The flight departure must be in the future
         if (departTs <= uint256(block.timestamp)) revert InvalidCloseTime();
 
+        // No last-minute betting rule (cutoff)
         uint256 cutoffOkAfter = uint256(departTs) - TRADING_CUTOFF_SECONDS;
         if (uint256(closeTs) > cutoffOkAfter) revert InvalidCloseTime();
 
@@ -273,12 +276,7 @@ contract FlightMarket is ReentrancyGuard, Ownable {
     // CRE secure write receiver
     // -------------------------------------------------------------------------
 
-    function onReport(
-        bytes calldata /*metadata*/,
-        bytes calldata report
-    ) external {
-        if (msg.sender != forwarder) revert OnlyForwarder();
-
+    function _processReport(bytes calldata report) internal override {
         uint256 marketId;
         bool delayed;
         uint256 delayMinutes;
