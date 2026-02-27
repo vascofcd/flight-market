@@ -16895,15 +16895,14 @@ function requireEnumField(name, value2, allowed) {
   return value2;
 }
 function mustBeHexAddress(label, addr) {
-  if (typeof addr !== "string") {
+  if (typeof addr !== "string")
     throw new Error(`${label} must be a string address, got ${typeof addr}`);
-  }
   if (!addr.startsWith("0x") || addr.length !== 42) {
     throw new Error(`${label} must be 0x + 40 hex chars. Got: ${addr}`);
   }
 }
 function runMockRequests(runtime2, flightId, departTs, mockProfile) {
-  runtime2.log(`Phase D: using MOCK providers only (profile=${mockProfile})`);
+  runtime2.log(`Phase E: using MOCK providers only (profile=${mockProfile})`);
   const ctx = { flightId, departTs, mockProfile };
   return [
     { provider: "MockAirOne", resp: mockAirOne(ctx) },
@@ -16928,7 +16927,7 @@ var onSettlementRequested = (runtime2, log) => {
   runtime2.log(`  departTs      = ${departTs.toString()}`);
   runtime2.log(`  thresholdMin  = ${thresholdMin.toString()}`);
   if (runtime2.config.dataMode !== "mock") {
-    throw new Error(`Phase D is mock-only. Set config.dataMode="mock".`);
+    throw new Error(`Phase E is mock-only right now. Set config.dataMode="mock".`);
   }
   const mockResults = runMockRequests(runtime2, flightId, Number(departTs), runtime2.config.mockProfile);
   const sources = mockResults.map(({ provider, resp }) => {
@@ -16943,7 +16942,7 @@ var onSettlementRequested = (runtime2, log) => {
   const generatedAtTs = Math.floor(Date.now() / 1000);
   const { canonicalJson, evidenceHash, pack } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.2.0-phase-d-mock",
+    workflowVersion: "0.3.0-phase-e-write",
     dataMode: "mock",
     mockProfile: runtime2.config.mockProfile,
     generatedAtTs,
@@ -16969,8 +16968,29 @@ var onSettlementRequested = (runtime2, log) => {
     signingAlgo: "ecdsa",
     hashingAlgo: "keccak256"
   }).result();
-  runtime2.log(`Report generated (Phase D dry-run). Not writing onchain yet.`);
-  runtime2.log(`Report metadata keys: ${Object.keys(reportResponse).join(", ")}`);
+  runtime2.log(`Report generated. Submitting onchain via evmClient.writeReport...`);
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: runtime2.config.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248)
+    throw new Error(`Network not found: ${runtime2.config.chainSelectorName}`);
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  const writeResult = evmClient.writeReport(runtime2, {
+    receiver: runtime2.config.receiverAddress,
+    report: reportResponse,
+    gasConfig: { gasLimit: runtime2.config.gasLimit }
+  }).result();
+  const txHashHex = bytesToHex(writeResult.txHash ?? new Uint8Array(32));
+  const writeTxStatus = writeResult.txStatus ?? "UNKNOWN";
+  const receiverExecutionStatus = writeResult.receiverContractExecutionStatus ?? "UNKNOWN";
+  const transactionFeeWei = (writeResult.transactionFee ?? 0n).toString();
+  const errorMessage = writeResult.errorMessage ?? "";
+  runtime2.log(`Write report tx hash: ${txHashHex}`);
+  runtime2.log(`TxStatus=${writeTxStatus}, ReceiverStatus=${receiverExecutionStatus}, FeeWei=${transactionFeeWei}`);
+  if (errorMessage.length > 0)
+    runtime2.log(`ErrorMessage=${errorMessage}`);
   return {
     marketId: marketId.toString(),
     flightId,
@@ -16981,7 +17001,12 @@ var onSettlementRequested = (runtime2, log) => {
     evidenceHash,
     evidenceCanonicalJson: canonicalJson,
     reportPayloadHex,
-    reportPayloadB64
+    reportPayloadB64,
+    writeTxHashHex: txHashHex,
+    writeTxStatus,
+    receiverExecutionStatus,
+    transactionFeeWei,
+    errorMessage
   };
 };
 var initWorkflow = (rawConfig) => {
@@ -16989,7 +17014,10 @@ var initWorkflow = (rawConfig) => {
   const flightMarketAddress = requireStringField("flightMarketAddress", rawConfig.flightMarketAddress);
   const receiverAddress = requireStringField("receiverAddress", rawConfig.receiverAddress);
   const gasLimit = requireStringField("gasLimit", rawConfig.gasLimit);
-  const dataMode = requireEnumField("dataMode", rawConfig.dataMode, ["mock", "live"]);
+  const dataMode = requireEnumField("dataMode", rawConfig.dataMode, [
+    "mock",
+    "live"
+  ]);
   const mockProfile = requireStringField("mockProfile", rawConfig.mockProfile);
   const config = {
     chainSelectorName,
