@@ -1,17 +1,15 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Outlet } from "react-router";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { NavBar } from "./components/NavBar";
 
-function App() {
+const App = () => {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        padding: 12,
-      }}
-    >
+    <div>
       <ConnectButton />
+      <NavBar />
+      <Outlet />
     </div>
   );
-}
+};
 
 export default App;
