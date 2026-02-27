@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <button onClick={() => setCount(count + 1)}>Count: {count}</button>
-    </>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: 12,
+      }}
+    >
+      <ConnectButton />
+    </div>
   );
 }
 
