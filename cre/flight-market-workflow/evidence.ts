@@ -2,9 +2,9 @@ import type {
   EvidencePack,
   EvidenceSource,
   NormalizedFlightStatus,
-} from "./types.js";
-import { canonicalStringify, sha3HexString } from "./utils.js";
-import { medianConsensus } from "./consensus.js";
+} from "./types";
+import { canonicalStringify, sha3HexString } from "./utils";
+import { medianConsensus } from "./consensus";
 
 export type EvidenceInputs = {
   workflowName: string;

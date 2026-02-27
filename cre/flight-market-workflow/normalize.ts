@@ -1,5 +1,5 @@
-import type { FlightAPIResponse, NormalizedFlightStatus } from "./types.js";
-import { clampNonNegative } from "./utils.js";
+import type { FlightAPIResponse, NormalizedFlightStatus } from "./types";
+import { clampNonNegative } from "./utils";
 
 type MockAirOneShape = {
   provider: "MockAirOne";

@@ -17,7 +17,7 @@
 # ==========================================================================
 local-simulation:
   user-workflow:
-    workflow-name: "prediction-market-demo"
+    workflow-name: "flight-market-workflow"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.json"

@@ -1,4 +1,4 @@
-// tmp.js
+// .cre_build_tmp.js
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -16882,6 +16882,26 @@ var settlementEventAbi = parseAbi([
 ]);
 var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uint256)";
 var SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
+function requireStringField(name, value2) {
+  if (typeof value2 !== "string" || value2.length === 0) {
+    throw new Error(`Missing/invalid config field "${String(name)}". ` + `Check workflows/flight-delay/workflow.yaml config-path and the JSON file it points to.`);
+  }
+  return value2;
+}
+function requireEnumField(name, value2, allowed) {
+  if (typeof value2 !== "string" || !allowed.includes(value2)) {
+    throw new Error(`Missing/invalid config field "${String(name)}". Expected one of: ${allowed.join(", ")}.`);
+  }
+  return value2;
+}
+function mustBeHexAddress(label, addr) {
+  if (typeof addr !== "string") {
+    throw new Error(`${label} must be a string address, got ${typeof addr}`);
+  }
+  if (!addr.startsWith("0x") || addr.length !== 42) {
+    throw new Error(`${label} must be 0x + 40 hex chars. Got: ${addr}`);
+  }
+}
 function runMockRequests(runtime2, flightId, departTs, mockProfile) {
   runtime2.log(`Phase D: using MOCK providers only (profile=${mockProfile})`);
   const ctx = { flightId, departTs, mockProfile };
@@ -16934,7 +16954,7 @@ var onSettlementRequested = (runtime2, log) => {
     sources
   });
   runtime2.log(`EvidenceHash: ${evidenceHash}`);
-  runtime2.log(`EvidencePack (canonical JSON, copy into /evidence/ if you want):`);
+  runtime2.log(`EvidencePack (canonical JSON):`);
   runtime2.log(canonicalJson);
   const delayMinutes = pack.resolution.consensusDelayMinutes;
   const delayed = pack.resolution.delayed;
@@ -16964,19 +16984,34 @@ var onSettlementRequested = (runtime2, log) => {
     reportPayloadB64
   };
 };
-var initWorkflow = (config) => {
+var initWorkflow = (rawConfig) => {
+  const chainSelectorName = requireStringField("chainSelectorName", rawConfig.chainSelectorName);
+  const flightMarketAddress = requireStringField("flightMarketAddress", rawConfig.flightMarketAddress);
+  const receiverAddress = requireStringField("receiverAddress", rawConfig.receiverAddress);
+  const gasLimit = requireStringField("gasLimit", rawConfig.gasLimit);
+  const dataMode = requireEnumField("dataMode", rawConfig.dataMode, ["mock", "live"]);
+  const mockProfile = requireStringField("mockProfile", rawConfig.mockProfile);
+  const config = {
+    chainSelectorName,
+    flightMarketAddress,
+    receiverAddress,
+    gasLimit,
+    dataMode,
+    mockProfile
+  };
+  mustBeHexAddress("flightMarketAddress", config.flightMarketAddress);
+  mustBeHexAddress("receiverAddress", config.receiverAddress);
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: config.chainSelectorName,
     isTestnet: true
   });
-  if (!network248) {
+  if (!network248)
     throw new Error(`Network not found: ${config.chainSelectorName}`);
-  }
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   return [
     handler(evmClient.logTrigger({
-      addresses: [hexToBase64(config.marketAddress)],
+      addresses: [hexToBase64(config.flightMarketAddress)],
       topics: [{ values: [hexToBase64(SETTLEMENT_EVENT_HASH)] }],
       confidence: "CONFIDENCE_LEVEL_FINALIZED"
     }), onSettlementRequested)

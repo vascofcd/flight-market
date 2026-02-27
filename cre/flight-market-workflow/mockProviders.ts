@@ -1,5 +1,5 @@
 import { keccak256, toBytes } from "viem";
-import type { FlightAPIResponse } from "./types.js";
+import type { FlightAPIResponse } from "./types";
 
 /**
  * Mock provider responses.
