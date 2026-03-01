@@ -1,7 +1,10 @@
+import Markets from "./Markets";
+
 const Home = () => {
   return (
     <>
-      <h2>Home</h2>
+      <h2>Welcome to Flight Markets!</h2>
+      <Markets />
     </>
   );
 };

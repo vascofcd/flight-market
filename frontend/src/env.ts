@@ -1,32 +1,25 @@
-type Env = {
-  walletConnectProjectId: string;
-  marketContractAddress: `0x${string}`;
-  sepoliaRpcUrl?: string;
-};
+import { z } from "zod";
 
-function requireValue(name: string, value: string | undefined): string {
-  if (!value) throw new Error(`Missing required env var: ${name}`);
-  return value;
-}
+const AddressSchema = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid EVM address")
+  .transform((v) => v as `0x${string}`);
 
-function asAddress(name: string, value: string): `0x${string}` {
-  if (!value.startsWith("0x") || value.length !== 42) {
-    throw new Error(`Invalid address in env var ${name}: ${value}`);
-  }
-  return value as `0x${string}`;
-}
-
-export const env: Env = {
-  walletConnectProjectId: requireValue(
-    "VITE_PUBLIC_WALLETCONNECT_PROJECT_ID",
-    import.meta.env.VITE_PUBLIC_WALLETCONNECT_PROJECT_ID,
+const EnvSchema = z.object({
+  walletConnectProjectId: z
+    .string()
+    .min(1, "Missing required env var: VITE_PUBLIC_WALLETCONNECT_PROJECT_ID"),
+  marketContractAddress: AddressSchema,
+  sepoliaRpcUrl: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().url("VITE_SEPOLIA_RPC_URL must be a valid URL").optional(),
   ),
-  marketContractAddress: asAddress(
-    "VITE_FLIGHT_MARKET_ADDRESS",
-    requireValue(
-      "VITE_FLIGHT_MARKET_ADDRESS",
-      import.meta.env.VITE_FLIGHT_MARKET_ADDRESS,
-    ),
-  ),
+});
+
+export type Env = z.infer<typeof EnvSchema>;
+
+export const env: Env = EnvSchema.parse({
+  walletConnectProjectId: import.meta.env.VITE_PUBLIC_WALLETCONNECT_PROJECT_ID,
+  marketContractAddress: import.meta.env.VITE_FLIGHT_MARKET_ADDRESS,
   sepoliaRpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL,
-};
+});

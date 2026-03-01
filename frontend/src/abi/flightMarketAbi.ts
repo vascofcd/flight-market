@@ -3,6 +3,26 @@ import { env } from "../env";
 export const FLIGHT_DELAY_MARKET_ADDRESS = env.marketContractAddress;
 
 export const FLIGHT_DELAY_MARKET_ABI = [
+  // -------------------------
+  // Errors (so viem can decode reverts)
+  // -------------------------
+  { type: "error", name: "NotOwner", inputs: [] },
+  { type: "error", name: "ZeroValue", inputs: [] },
+  { type: "error", name: "MarketNotFound", inputs: [] },
+  { type: "error", name: "MarketClosed", inputs: [] },
+  { type: "error", name: "MarketNotClosed", inputs: [] },
+  { type: "error", name: "MarketAlreadyResolved", inputs: [] },
+  { type: "error", name: "SettlementAlreadyRequested", inputs: [] },
+  { type: "error", name: "InvalidCloseTime", inputs: [] },
+  { type: "error", name: "StakeCapExceeded", inputs: [] },
+  { type: "error", name: "PoolCapExceeded", inputs: [] },
+  { type: "error", name: "OnlyForwarder", inputs: [] },
+  { type: "error", name: "BadReport", inputs: [] },
+  { type: "error", name: "NothingToClaim", inputs: [] },
+
+  // -------------------------
+  // Functions
+  // -------------------------
   {
     type: "function",
     name: "createMarket",
@@ -15,6 +35,36 @@ export const FLIGHT_DELAY_MARKET_ABI = [
     ],
     outputs: [{ name: "marketId", type: "uint256" }],
   },
+  {
+    type: "function",
+    name: "nextMarketId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getMarket",
+    stateMutability: "view",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [
+      { name: "flightId", type: "string" },
+      { name: "departTs", type: "uint256" },
+      { name: "thresholdMin", type: "uint256" },
+      { name: "closeTs", type: "uint256" },
+      { name: "yesPool", type: "uint256" },
+      { name: "noPool", type: "uint256" },
+      { name: "settlementRequestedTs", type: "uint256" },
+      { name: "resolved", type: "bool" },
+      { name: "delayed", type: "bool" },
+      { name: "delayMinutes", type: "uint256" },
+      { name: "evidenceHash", type: "bytes32" },
+    ],
+  },
+  
+  // -------------------------
+  // Events
+  // -------------------------
   {
     type: "event",
     name: "MarketCreated",
