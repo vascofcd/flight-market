@@ -1,7 +1,8 @@
 import { Link, useParams } from "react-router";
-import { useMarket } from "../hooks/useMarket";
-import { getMarketStatus } from "../features/marketStatus";
 import { formatEth, formatUnixSeconds } from "../utils/format";
+import { useMarket } from "../hooks/useMarket";
+import { MarketActionsBox } from "../components/MarketActionsBox";
+import { getMarketStatus } from "../features/marketStatus";
 
 function parseMarketId(value: string | undefined): bigint | null {
   if (!value) return null;
@@ -63,35 +64,9 @@ const MarketDetails = () => {
             <li>NO pool: {formatEth(marketQuery.data.noPool)} ETH</li>
           </ul>
 
-          <h3>Settlement</h3>
-          <ul>
-            <li>
-              Settlement requested at:{" "}
-              {marketQuery.data.settlementRequestedTs === 0n
-                ? "Not requested"
-                : formatUnixSeconds(marketQuery.data.settlementRequestedTs)}
-            </li>
-          </ul>
-
-          <h3>Resolution</h3>
-          <ul>
-            <li>
-              Resolved: <code>{String(marketQuery.data.resolved)}</code>
-            </li>
-            <li>
-              Outcome (delayed): <code>{String(marketQuery.data.delayed)}</code>
-            </li>
-            <li>
-              Delay minutes:{" "}
-              <code>{marketQuery.data.delayMinutes.toString()}</code>
-            </li>
-            <li>
-              Evidence hash: <code>{marketQuery.data.evidenceHash}</code>
-            </li>
-          </ul>
-
           <hr />
-          <p>(Next step: Buy YES/NO + Request settlement + Evidence view.)</p>
+
+          <MarketActionsBox market={marketQuery.data} />
         </div>
       ) : null}
     </div>

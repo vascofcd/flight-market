@@ -4,7 +4,7 @@ export const FLIGHT_DELAY_MARKET_ADDRESS = env.marketContractAddress;
 
 export const FLIGHT_DELAY_MARKET_ABI = [
   // -------------------------
-  // Errors (so viem can decode reverts)
+  // Errors
   // -------------------------
   { type: "error", name: "NotOwner", inputs: [] },
   { type: "error", name: "ZeroValue", inputs: [] },
@@ -21,20 +21,8 @@ export const FLIGHT_DELAY_MARKET_ABI = [
   { type: "error", name: "NothingToClaim", inputs: [] },
 
   // -------------------------
-  // Functions
+  // Views
   // -------------------------
-  {
-    type: "function",
-    name: "createMarket",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "flightId", type: "string" },
-      { name: "departTs", type: "uint256" },
-      { name: "thresholdMin", type: "uint256" },
-      { name: "closeTs", type: "uint256" },
-    ],
-    outputs: [{ name: "marketId", type: "uint256" }],
-  },
   {
     type: "function",
     name: "nextMarketId",
@@ -61,7 +49,65 @@ export const FLIGHT_DELAY_MARKET_ABI = [
       { name: "evidenceHash", type: "bytes32" },
     ],
   },
-  
+  {
+    type: "function",
+    name: "getUserPosition",
+    stateMutability: "view",
+    inputs: [
+      { name: "marketId", type: "uint256" },
+      { name: "user", type: "address" },
+    ],
+    outputs: [
+      { name: "yesAmount", type: "uint256" },
+      { name: "noAmount", type: "uint256" },
+      { name: "hasClaimed", type: "bool" },
+    ],
+  },
+
+  // -------------------------
+  // Writes
+  // -------------------------
+  {
+    type: "function",
+    name: "createMarket",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "flightId", type: "string" },
+      { name: "departTs", type: "uint256" },
+      { name: "thresholdMin", type: "uint256" },
+      { name: "closeTs", type: "uint256" },
+    ],
+    outputs: [{ name: "marketId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "buyYes",
+    stateMutability: "payable",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "buyNo",
+    stateMutability: "payable",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "requestSettlement",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "marketId", type: "uint256" }],
+    outputs: [{ name: "payout", type: "uint256" }],
+  },
+
   // -------------------------
   // Events
   // -------------------------
@@ -74,6 +120,16 @@ export const FLIGHT_DELAY_MARKET_ABI = [
       { name: "departTs", type: "uint256", indexed: false },
       { name: "thresholdMin", type: "uint256", indexed: false },
       { name: "closeTs", type: "uint256", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "Claimed",
+    inputs: [
+      { name: "marketId", type: "uint256", indexed: true },
+      { name: "user", type: "address", indexed: true },
+      { name: "payout", type: "uint256", indexed: false },
     ],
     anonymous: false,
   },
