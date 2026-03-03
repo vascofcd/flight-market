@@ -6383,6 +6383,7 @@ var ListSchema = /* @__PURE__ */ messageDesc(file_values_v1_values, 3);
 var DecimalSchema = /* @__PURE__ */ messageDesc(file_values_v1_values, 4);
 var file_sdk_v1alpha_sdk = /* @__PURE__ */ fileDesc("ChVzZGsvdjFhbHBoYS9zZGsucHJvdG8SC3Nkay52MWFscGhhIrQBChVTaW1wbGVDb25zZW5zdXNJbnB1dHMSIQoFdmFsdWUYASABKAsyEC52YWx1ZXMudjEuVmFsdWVIABIPCgVlcnJvchgCIAEoCUgAEjUKC2Rlc2NyaXB0b3JzGAMgASgLMiAuc2RrLnYxYWxwaGEuQ29uc2Vuc3VzRGVzY3JpcHRvchIhCgdkZWZhdWx0GAQgASgLMhAudmFsdWVzLnYxLlZhbHVlQg0KC29ic2VydmF0aW9uIpABCglGaWVsZHNNYXASMgoGZmllbGRzGAEgAygLMiIuc2RrLnYxYWxwaGEuRmllbGRzTWFwLkZpZWxkc0VudHJ5Gk8KC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRIvCgV2YWx1ZRgCIAEoCzIgLnNkay52MWFscGhhLkNvbnNlbnN1c0Rlc2NyaXB0b3I6AjgBIoYBChNDb25zZW5zdXNEZXNjcmlwdG9yEjMKC2FnZ3JlZ2F0aW9uGAEgASgOMhwuc2RrLnYxYWxwaGEuQWdncmVnYXRpb25UeXBlSAASLAoKZmllbGRzX21hcBgCIAEoCzIWLnNkay52MWFscGhhLkZpZWxkc01hcEgAQgwKCmRlc2NyaXB0b3IiagoNUmVwb3J0UmVxdWVzdBIXCg9lbmNvZGVkX3BheWxvYWQYASABKAwSFAoMZW5jb2Rlcl9uYW1lGAIgASgJEhQKDHNpZ25pbmdfYWxnbxgDIAEoCRIUCgxoYXNoaW5nX2FsZ28YBCABKAkilwEKDlJlcG9ydFJlc3BvbnNlEhUKDWNvbmZpZ19kaWdlc3QYASABKAwSEgoGc2VxX25yGAIgASgEQgIwABIWCg5yZXBvcnRfY29udGV4dBgDIAEoDBISCgpyYXdfcmVwb3J0GAQgASgMEi4KBHNpZ3MYBSADKAsyIC5zZGsudjFhbHBoYS5BdHRyaWJ1dGVkU2lnbmF0dXJlIjsKE0F0dHJpYnV0ZWRTaWduYXR1cmUSEQoJc2lnbmF0dXJlGAEgASgMEhEKCXNpZ25lcl9pZBgCIAEoDSJrChFDYXBhYmlsaXR5UmVxdWVzdBIKCgJpZBgBIAEoCRIlCgdwYXlsb2FkGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueRIOCgZtZXRob2QYAyABKAkSEwoLY2FsbGJhY2tfaWQYBCABKAUiWgoSQ2FwYWJpbGl0eVJlc3BvbnNlEicKB3BheWxvYWQYASABKAsyFC5nb29nbGUucHJvdG9idWYuQW55SAASDwoFZXJyb3IYAiABKAlIAEIKCghyZXNwb25zZSJYChNUcmlnZ2VyU3Vic2NyaXB0aW9uEgoKAmlkGAEgASgJEiUKB3BheWxvYWQYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55Eg4KBm1ldGhvZBgDIAEoCSJVChpUcmlnZ2VyU3Vic2NyaXB0aW9uUmVxdWVzdBI3Cg1zdWJzY3JpcHRpb25zGAEgAygLMiAuc2RrLnYxYWxwaGEuVHJpZ2dlclN1YnNjcmlwdGlvbiJACgdUcmlnZ2VyEg4KAmlkGAEgASgEQgIwABIlCgdwYXlsb2FkGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueSInChhBd2FpdENhcGFiaWxpdGllc1JlcXVlc3QSCwoDaWRzGAEgAygFIrgBChlBd2FpdENhcGFiaWxpdGllc1Jlc3BvbnNlEkgKCXJlc3BvbnNlcxgBIAMoCzI1LnNkay52MWFscGhhLkF3YWl0Q2FwYWJpbGl0aWVzUmVzcG9uc2UuUmVzcG9uc2VzRW50cnkaUQoOUmVzcG9uc2VzRW50cnkSCwoDa2V5GAEgASgFEi4KBXZhbHVlGAIgASgLMh8uc2RrLnYxYWxwaGEuQ2FwYWJpbGl0eVJlc3BvbnNlOgI4ASKgAQoORXhlY3V0ZVJlcXVlc3QSDgoGY29uZmlnGAEgASgMEisKCXN1YnNjcmliZRgCIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eUgAEicKB3RyaWdnZXIYAyABKAsyFC5zZGsudjFhbHBoYS5UcmlnZ2VySAASHQoRbWF4X3Jlc3BvbnNlX3NpemUYBCABKARCAjAAQgkKB3JlcXVlc3QimQEKD0V4ZWN1dGlvblJlc3VsdBIhCgV2YWx1ZRgBIAEoCzIQLnZhbHVlcy52MS5WYWx1ZUgAEg8KBWVycm9yGAIgASgJSAASSAoVdHJpZ2dlcl9zdWJzY3JpcHRpb25zGAMgASgLMicuc2RrLnYxYWxwaGEuVHJpZ2dlclN1YnNjcmlwdGlvblJlcXVlc3RIAEIICgZyZXN1bHQiVgoRR2V0U2VjcmV0c1JlcXVlc3QSLAoIcmVxdWVzdHMYASADKAsyGi5zZGsudjFhbHBoYS5TZWNyZXRSZXF1ZXN0EhMKC2NhbGxiYWNrX2lkGAIgASgFIiIKE0F3YWl0U2VjcmV0c1JlcXVlc3QSCwoDaWRzGAEgAygFIqsBChRBd2FpdFNlY3JldHNSZXNwb25zZRJDCglyZXNwb25zZXMYASADKAsyMC5zZGsudjFhbHBoYS5Bd2FpdFNlY3JldHNSZXNwb25zZS5SZXNwb25zZXNFbnRyeRpOCg5SZXNwb25zZXNFbnRyeRILCgNrZXkYASABKAUSKwoFdmFsdWUYAiABKAsyHC5zZGsudjFhbHBoYS5TZWNyZXRSZXNwb25zZXM6AjgBIi4KDVNlY3JldFJlcXVlc3QSCgoCaWQYASABKAkSEQoJbmFtZXNwYWNlGAIgASgJIkUKBlNlY3JldBIKCgJpZBgBIAEoCRIRCgluYW1lc3BhY2UYAiABKAkSDQoFb3duZXIYAyABKAkSDQoFdmFsdWUYBCABKAkiSgoLU2VjcmV0RXJyb3ISCgoCaWQYASABKAkSEQoJbmFtZXNwYWNlGAIgASgJEg0KBW93bmVyGAMgASgJEg0KBWVycm9yGAQgASgJIm4KDlNlY3JldFJlc3BvbnNlEiUKBnNlY3JldBgBIAEoCzITLnNkay52MWFscGhhLlNlY3JldEgAEikKBWVycm9yGAIgASgLMhguc2RrLnYxYWxwaGEuU2VjcmV0RXJyb3JIAEIKCghyZXNwb25zZSJBCg9TZWNyZXRSZXNwb25zZXMSLgoJcmVzcG9uc2VzGAEgAygLMhsuc2RrLnYxYWxwaGEuU2VjcmV0UmVzcG9uc2UquAEKD0FnZ3JlZ2F0aW9uVHlwZRIgChxBR0dSRUdBVElPTl9UWVBFX1VOU1BFQ0lGSUVEEAASGwoXQUdHUkVHQVRJT05fVFlQRV9NRURJQU4QARIeChpBR0dSRUdBVElPTl9UWVBFX0lERU5USUNBTBACEiIKHkFHR1JFR0FUSU9OX1RZUEVfQ09NTU9OX1BSRUZJWBADEiIKHkFHR1JFR0FUSU9OX1RZUEVfQ09NTU9OX1NVRkZJWBAEKjkKBE1vZGUSFAoQTU9ERV9VTlNQRUNJRklFRBAAEgwKCE1PREVfRE9OEAESDQoJTU9ERV9OT0RFEAJCaAoPY29tLnNkay52MWFscGhhQghTZGtQcm90b1ABogIDU1hYqgILU2RrLlYxYWxwaGHKAgtTZGtcVjFhbHBoYeICF1Nka1xWMWFscGhhXEdQQk1ldGFkYXRh6gIMU2RrOjpWMWFscGhhYgZwcm90bzM", [file_google_protobuf_any, file_google_protobuf_empty, file_values_v1_values]);
 var SimpleConsensusInputsSchema = /* @__PURE__ */ messageDesc(file_sdk_v1alpha_sdk, 0);
+var ConsensusDescriptorSchema = /* @__PURE__ */ messageDesc(file_sdk_v1alpha_sdk, 2);
 var ReportRequestSchema = /* @__PURE__ */ messageDesc(file_sdk_v1alpha_sdk, 3);
 var ReportResponseSchema = /* @__PURE__ */ messageDesc(file_sdk_v1alpha_sdk, 4);
 var CapabilityRequestSchema = /* @__PURE__ */ messageDesc(file_sdk_v1alpha_sdk, 6);
@@ -8134,6 +8135,38 @@ var LATEST_BLOCK_NUMBER = {
   absVal: Buffer.from([2]).toString("base64"),
   sign: "-1"
 };
+var decodeJson = (input) => {
+  const decoder = new TextDecoder("utf-8");
+  const textBody = decoder.decode(input);
+  return JSON.parse(textBody);
+};
+function text(responseOrFn) {
+  if (typeof responseOrFn === "function") {
+    return {
+      result: () => text(responseOrFn().result)
+    };
+  } else {
+    const decoder = new TextDecoder("utf-8");
+    return decoder.decode(responseOrFn.body).trim();
+  }
+}
+function json(responseOrFn) {
+  if (typeof responseOrFn === "function") {
+    return {
+      result: () => json(responseOrFn().result)
+    };
+  }
+  return decodeJson(responseOrFn.body);
+}
+function ok(responseOrFn) {
+  if (typeof responseOrFn === "function") {
+    return {
+      result: () => ok(responseOrFn().result)
+    };
+  } else {
+    return responseOrFn.statusCode >= 200 && responseOrFn.statusCode < 300;
+  }
+}
 function sendReport(runtime, report, fn) {
   const rawReport = report.x_generatedCodeOnly_unwrap();
   const request = fn(rawReport);
@@ -11763,6 +11796,33 @@ var defaultLookup = new NetworkLookup({
   testnetBySelectorByFamily
 });
 var getNetwork = (options) => defaultLookup.find(options);
+function consensusIdenticalAggregation() {
+  return simpleConsensus(AggregationType.IDENTICAL);
+}
+
+class ConsensusImpl {
+  descriptor;
+  defaultValue;
+  constructor(descriptor, defaultValue) {
+    this.descriptor = descriptor;
+    this.defaultValue = defaultValue;
+  }
+  withDefault(t) {
+    return new ConsensusImpl(this.descriptor, t);
+  }
+  _usesUToForceShape(_) {}
+}
+function simpleConsensus(agg) {
+  return new ConsensusImpl(simpleDescriptor(agg));
+}
+function simpleDescriptor(agg) {
+  return create(ConsensusDescriptorSchema, {
+    descriptor: {
+      case: "aggregation",
+      value: agg
+    }
+  });
+}
 
 class Int64 {
   static INT64_MIN = -(2n ** 63n);
@@ -12377,8 +12437,8 @@ var ZodIssueCode = util.arrayToEnum([
   "not_finite"
 ]);
 var quotelessJson = (obj) => {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"]+)":/g, "$1:");
+  const json2 = JSON.stringify(obj, null, 2);
+  return json2.replace(/"([^"]+)":/g, "$1:");
 };
 
 class ZodError extends Error {
@@ -16717,45 +16777,6 @@ function decodeTopic({ param, value: value2 }) {
 init_encodeAbiParameters();
 init_toBytes();
 init_keccak256();
-function baseDelayMinutes(ctx) {
-  const seed = keccak256(toBytes(`${ctx.mockProfile}|${ctx.flightId}|${ctx.departTs}`));
-  const n = BigInt(seed) % 181n;
-  return Number(n);
-}
-function makeResponse(obj) {
-  return {
-    statusCode: 200,
-    rawJsonString: JSON.stringify(obj)
-  };
-}
-function mockAirOne(ctx) {
-  const delay = Math.max(0, baseDelayMinutes(ctx) - 3);
-  const scheduled = ctx.departTs;
-  const actual = ctx.departTs + delay * 60;
-  return makeResponse({
-    provider: "MockAirOne",
-    flightId: ctx.flightId,
-    scheduledDepartureTs: scheduled,
-    actualDepartureTs: actual,
-    status: delay === 0 ? "on_time" : "departed_late",
-    note: "MOCK_ONLY_PHASE_D"
-  });
-}
-function mockSkyTwo(ctx) {
-  const delay = Math.min(180, baseDelayMinutes(ctx) + 4);
-  const scheduled = ctx.departTs;
-  const actual = ctx.departTs + delay * 60;
-  return makeResponse({
-    provider: "MockSkyTwo",
-    flightId: ctx.flightId,
-    times: {
-      scheduledDepartureTs: scheduled,
-      actualDepartureTs: actual
-    },
-    status: delay === 0 ? "on_time" : "delayed",
-    note: "MOCK_ONLY_PHASE_D"
-  });
-}
 function canonicalStringify(value2) {
   return JSON.stringify(canonicalize(value2));
 }
@@ -16784,6 +16805,50 @@ function sha3HexString(s) {
 function clampNonNegative(n) {
   return n < 0 ? 0 : n;
 }
+function pickActualTimeMs(f) {
+  if (f.flightDirection === "A") {
+    if (f.actualLandingTime)
+      return {
+        ms: Date.parse(f.actualLandingTime),
+        field: "actualLandingTime"
+      };
+    if (f.estimatedLandingTime)
+      return {
+        ms: Date.parse(f.estimatedLandingTime),
+        field: "estimatedLandingTime"
+      };
+  }
+  if (f.flightDirection === "D") {
+    if (f.actualOffBlockTime)
+      return {
+        ms: Date.parse(f.actualOffBlockTime),
+        field: "actualOffBlockTime"
+      };
+    if (f.publicEstimatedOffBlockTime)
+      return {
+        ms: Date.parse(f.publicEstimatedOffBlockTime),
+        field: "publicEstimatedOffBlockTime"
+      };
+  }
+  if (f.actualLandingTime)
+    return { ms: Date.parse(f.actualLandingTime), field: "actualLandingTime" };
+  if (f.estimatedLandingTime)
+    return {
+      ms: Date.parse(f.estimatedLandingTime),
+      field: "estimatedLandingTime"
+    };
+  if (f.actualOffBlockTime)
+    return {
+      ms: Date.parse(f.actualOffBlockTime),
+      field: "actualOffBlockTime"
+    };
+  if (f.publicEstimatedOffBlockTime)
+    return {
+      ms: Date.parse(f.publicEstimatedOffBlockTime),
+      field: "publicEstimatedOffBlockTime"
+    };
+  return { ms: NaN, field: "none" };
+}
 function normalize(provider, flightId, resp) {
   const raw = JSON.parse(resp.rawJsonString);
   if (provider === "MockAirOne") {
@@ -16805,6 +16870,25 @@ function normalize(provider, flightId, resp) {
       flightId,
       scheduledDepartureTs: o.times.scheduledDepartureTs,
       actualDepartureTs: o.times.actualDepartureTs,
+      delayMinutes: delay
+    };
+  }
+  if (provider === "Schiphol") {
+    const o = raw;
+    if (!o.flight || !o.flight.scheduleDateTime)
+      throw new Error("Schiphol response missing scheduleDateTime");
+    const scheduledMs = Date.parse(o.flight.scheduleDateTime);
+    const actualPick = pickActualTimeMs(o.flight);
+    if (!Number.isFinite(scheduledMs))
+      throw new Error("Invalid scheduleDateTime");
+    if (!Number.isFinite(actualPick.ms))
+      throw new Error("No usable actual/estimated time fields");
+    const delay = clampNonNegative(Math.floor((actualPick.ms - scheduledMs) / 60000));
+    return {
+      provider,
+      flightId,
+      scheduledDepartureTs: Math.floor(scheduledMs / 1000),
+      actualDepartureTs: Math.floor(actualPick.ms / 1000),
       delayMinutes: delay
     };
   }
@@ -16849,7 +16933,7 @@ function buildEvidencePack(inputs) {
       thresholdMin: inputs.thresholdMin
     },
     resolution: {
-      metric: "departure_delay_minutes",
+      metric: "schedule_to_actual_minutes",
       method: "median_of_sources",
       sourcesUsed: used,
       delays,
@@ -16864,11 +16948,11 @@ function buildEvidencePack(inputs) {
   return { pack, canonicalJson, evidenceHash };
 }
 function makeEvidenceSource(provider, statusCode, rawJson, normalized, error) {
-  const ok = !error && statusCode >= 200 && statusCode < 300 && !!normalized;
+  const ok2 = !error && statusCode >= 200 && statusCode < 300 && !!normalized;
   return {
     provider,
     statusCode,
-    ok,
+    ok: ok2,
     raw: {
       sha3: sha3HexString(rawJson),
       json: rawJson
@@ -16877,60 +16961,260 @@ function makeEvidenceSource(provider, statusCode, rawJson, normalized, error) {
     error
   };
 }
+function isoLocalNoOffsetUTC(epochSeconds) {
+  const d = new Date(epochSeconds * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(d.getUTCMinutes()).padStart(2, "0");
+  const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+}
+function encodeQuery(params) {
+  const keys = Object.keys(params).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  return keys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
+}
+function baseUrl(cfg) {
+  return cfg.schipholBaseUrl.replace(/\/+$/, "");
+}
+function buildLookupUrl(flightName, departTs, cfg) {
+  const from2 = departTs - cfg.schipholWindowSeconds;
+  const to = departTs + cfg.schipholWindowSeconds;
+  const params = {
+    flightName,
+    fromDateTime: isoLocalNoOffsetUTC(from2),
+    toDateTime: isoLocalNoOffsetUTC(to),
+    searchDateTimeField: "scheduleDateTime",
+    sort: "+scheduleDateTime"
+  };
+  return `${baseUrl(cfg)}/flights?${encodeQuery(params)}`;
+}
+function buildByIdUrl(id, cfg) {
+  return `${baseUrl(cfg)}/flights/${encodeURIComponent(id)}`;
+}
+function looksLikeSchipholId(s) {
+  return /^[0-9]{12,}$/.test(s);
+}
+function matchesFlightId(f, flightId) {
+  const want = flightId.toUpperCase();
+  const name = (f.flightName ?? "").toUpperCase();
+  const main = (f.mainFlight ?? "").toUpperCase();
+  const codeshares = (f.codeshares?.codeshares ?? []).map((x) => x.toUpperCase());
+  return name === want || main === want || codeshares.includes(want);
+}
+function pickBestFlight(list, flightId, departTs) {
+  const flights = list.flights ?? [];
+  const candidates = flights.filter((f) => matchesFlightId(f, flightId));
+  if (candidates.length === 0)
+    return null;
+  let best = candidates[0];
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (const f of candidates) {
+    const sched = f.scheduleDateTime ? Date.parse(f.scheduleDateTime) : NaN;
+    if (!Number.isFinite(sched))
+      continue;
+    const diff = Math.abs(sched - departTs * 1000);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = f;
+    }
+  }
+  return best;
+}
+function slimFlight(f, resolvedId) {
+  return {
+    provider: "Schiphol",
+    resolvedId,
+    id: f.id ?? "",
+    flightName: f.flightName ?? "",
+    mainFlight: f.mainFlight ?? "",
+    flightDirection: f.flightDirection ?? "",
+    scheduleDateTime: f.scheduleDateTime ?? "",
+    actualLandingTime: f.actualLandingTime ?? "",
+    estimatedLandingTime: f.estimatedLandingTime ?? "",
+    actualOffBlockTime: f.actualOffBlockTime ?? "",
+    publicEstimatedOffBlockTime: f.publicEstimatedOffBlockTime ?? "",
+    codeshares: f.codeshares?.codeshares ?? []
+  };
+}
+var doRequest = (sendRequester, url, headers) => {
+  const response = sendRequester.sendRequest({
+    url,
+    method: "GET",
+    headers
+  }).result();
+  const statusCode = response.statusCode;
+  const bodyText = text(response);
+  return { statusCode, bodyText, ok: ok(response) };
+};
+var fetchLookup = (sendRequester, q) => {
+  const r = doRequest(sendRequester, q.url, q.headers);
+  return { statusCode: r.statusCode, rawJsonString: r.bodyText };
+};
+var fetchById = (sendRequester, q) => {
+  const r = doRequest(sendRequester, q.url, q.headers);
+  return { statusCode: r.statusCode, rawJsonString: r.bodyText };
+};
+function fetchSchipholFlight(runtime2, q) {
+  const httpClient = new ClientCapability2;
+  if (looksLikeSchipholId(q.flightId)) {
+    const url = buildByIdUrl(q.flightId, q.cfg);
+    runtime2.log(`Schiphol: using BY-ID endpoint directly: ${url}`);
+    const raw = httpClient.sendRequest(runtime2, fetchById, consensusIdenticalAggregation())({ url, headers: q.headers }).result();
+    try {
+      const obj = JSON.parse(raw.rawJsonString);
+      return { statusCode: raw.statusCode, rawJsonString: JSON.stringify({ flight: slimFlight(obj, q.flightId) }) };
+    } catch {
+      return raw;
+    }
+  }
+  const lookupUrl = buildLookupUrl(q.flightId, q.departTs, q.cfg);
+  runtime2.log(`Schiphol: lookup to resolve id: ${lookupUrl}`);
+  const lookupRaw = httpClient.sendRequest(runtime2, fetchLookup, consensusIdenticalAggregation())({ url: lookupUrl, headers: q.headers }).result();
+  if (lookupRaw.statusCode < 200 || lookupRaw.statusCode >= 300)
+    return lookupRaw;
+  let resolvedId = "";
+  try {
+    const parsed = json({ statusCode: lookupRaw.statusCode, body: new TextEncoder().encode(lookupRaw.rawJsonString) });
+    const best = pickBestFlight(parsed, q.flightId, q.departTs);
+    resolvedId = best?.id ?? "";
+  } catch {
+    try {
+      const parsed2 = JSON.parse(lookupRaw.rawJsonString);
+      const best2 = pickBestFlight(parsed2, q.flightId, q.departTs);
+      resolvedId = best2?.id ?? "";
+    } catch {
+      return { statusCode: lookupRaw.statusCode, rawJsonString: JSON.stringify({ error: "LOOKUP_PARSE_FAILED" }) };
+    }
+  }
+  if (!resolvedId) {
+    return { statusCode: 200, rawJsonString: JSON.stringify({ error: "FLIGHT_NOT_FOUND", flightId: q.flightId }) };
+  }
+  const byIdUrl = buildByIdUrl(resolvedId, q.cfg);
+  runtime2.log(`Schiphol: resolved id=${resolvedId}, calling BY-ID endpoint: ${byIdUrl}`);
+  const byIdRaw = httpClient.sendRequest(runtime2, fetchById, consensusIdenticalAggregation())({ url: byIdUrl, headers: q.headers }).result();
+  if (byIdRaw.statusCode < 200 || byIdRaw.statusCode >= 300)
+    return byIdRaw;
+  try {
+    const flight = JSON.parse(byIdRaw.rawJsonString);
+    return { statusCode: byIdRaw.statusCode, rawJsonString: JSON.stringify({ flight: slimFlight(flight, resolvedId) }) };
+  } catch {
+    return byIdRaw;
+  }
+}
+function baseDelayMinutes(ctx) {
+  const seed = keccak256(toBytes(`${ctx.mockProfile}|${ctx.flightId}|${ctx.departTs}`));
+  const n = BigInt(seed) % 181n;
+  return Number(n);
+}
+function makeResponse(obj) {
+  return {
+    statusCode: 200,
+    rawJsonString: JSON.stringify(obj)
+  };
+}
+function mockAirOne(ctx) {
+  const delay = Math.max(0, baseDelayMinutes(ctx) - 3);
+  const scheduled = ctx.departTs;
+  const actual = ctx.departTs + delay * 60;
+  return makeResponse({
+    provider: "MockAirOne",
+    flightId: ctx.flightId,
+    scheduledDepartureTs: scheduled,
+    actualDepartureTs: actual,
+    status: delay === 0 ? "on_time" : "departed_late",
+    note: "MOCK_ONLY_PHASE_D"
+  });
+}
+function mockSkyTwo(ctx) {
+  const delay = Math.min(180, baseDelayMinutes(ctx) + 4);
+  const scheduled = ctx.departTs;
+  const actual = ctx.departTs + delay * 60;
+  return makeResponse({
+    provider: "MockSkyTwo",
+    flightId: ctx.flightId,
+    times: {
+      scheduledDepartureTs: scheduled,
+      actualDepartureTs: actual
+    },
+    status: delay === 0 ? "on_time" : "delayed",
+    note: "MOCK_ONLY_PHASE_D"
+  });
+}
 var settlementEventAbi = parseAbi([
   "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"
 ]);
 var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uint256)";
 var SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
-function requireStringField(name, value2) {
-  if (typeof value2 !== "string" || value2.length === 0) {
-    throw new Error(`Missing/invalid config field "${String(name)}". ` + `Check workflows/flight-delay/workflow.yaml config-path and the JSON file it points to.`);
-  }
-  return value2;
+function requireString(label, v) {
+  if (typeof v !== "string" || v.length === 0)
+    throw new Error(`Missing/invalid config: ${label}`);
+  return v;
 }
-function requireEnumField(name, value2, allowed) {
-  if (typeof value2 !== "string" || !allowed.includes(value2)) {
-    throw new Error(`Missing/invalid config field "${String(name)}". Expected one of: ${allowed.join(", ")}.`);
-  }
-  return value2;
+function requireAddress(label, addr) {
+  if (!addr.startsWith("0x") || addr.length !== 42)
+    throw new Error(`${label} must be 0x + 40 hex chars`);
 }
-function mustBeHexAddress(label, addr) {
-  if (typeof addr !== "string")
-    throw new Error(`${label} must be a string address, got ${typeof addr}`);
-  if (!addr.startsWith("0x") || addr.length !== 42) {
-    throw new Error(`${label} must be 0x + 40 hex chars. Got: ${addr}`);
-  }
-}
-function runMockRequests(runtime2, flightId, departTs, mockProfile) {
-  runtime2.log(`Phase E: using MOCK providers only (profile=${mockProfile})`);
-  const ctx = { flightId, departTs, mockProfile };
+function runMockRequests(runtime2, flightId, departTs) {
+  const profile = runtime2.config.mockProfile ?? "default";
+  runtime2.log(`Using MOCK providers only (profile=${profile})`);
+  const ctx = { flightId, departTs, mockProfile: profile };
   return [
     { provider: "MockAirOne", resp: mockAirOne(ctx) },
     { provider: "MockSkyTwo", resp: mockSkyTwo(ctx) }
   ];
 }
+function runSchipholRequest(runtime2, flightId, departTs) {
+  const baseUrl2 = runtime2.config.schipholBaseUrl ?? "https://api.schiphol.nl/public-flights";
+  const resourceVersion = runtime2.config.schipholResourceVersion ?? "v4";
+  const windowSeconds = Number(runtime2.config.schipholWindowSeconds ?? "43200");
+  const appId = runtime2.getSecret({ id: "SCHIPHOL_APP_ID" }).result().value;
+  const appKey = runtime2.getSecret({ id: "SCHIPHOL_APP_KEY" }).result().value;
+  if (!appId || !appKey)
+    throw new Error("Missing Schiphol secrets: SCHIPHOL_APP_ID / SCHIPHOL_APP_KEY");
+  const headers = {
+    accept: "application/json",
+    ResourceVersion: resourceVersion,
+    app_id: appId,
+    app_key: appKey
+  };
+  const resp = fetchSchipholFlight(runtime2, {
+    headers,
+    flightId,
+    departTs,
+    cfg: {
+      schipholBaseUrl: baseUrl2,
+      schipholResourceVersion: resourceVersion,
+      schipholWindowSeconds: windowSeconds
+    }
+  });
+  return [{ provider: "Schiphol", resp }];
+}
 var onSettlementRequested = (runtime2, log) => {
   const topics = log.topics.map((t) => bytesToHex(t));
   const data = bytesToHex(log.data);
-  const decoded = decodeEventLog({
-    abi: settlementEventAbi,
-    data,
-    topics
-  });
-  if (decoded.eventName !== "SettlementRequested") {
-    throw new Error(`Unexpected event: ${decoded.eventName}`);
+  const topic0 = topics[0]?.toLowerCase();
+  const expected = SETTLEMENT_EVENT_HASH.toLowerCase();
+  if (topic0 !== expected) {
+    throw new Error(`Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}. ` + `Use the requestSettlement tx hash and pick the correct log index.`);
   }
+  const decoded = decodeEventLog({ abi: settlementEventAbi, data, topics });
   const { marketId, flightId, departTs, thresholdMin } = decoded.args;
   runtime2.log(`SettlementRequested detected`);
   runtime2.log(`  marketId      = ${marketId.toString()}`);
   runtime2.log(`  flightId      = ${flightId}`);
   runtime2.log(`  departTs      = ${departTs.toString()}`);
   runtime2.log(`  thresholdMin  = ${thresholdMin.toString()}`);
-  if (runtime2.config.dataMode !== "mock") {
-    throw new Error(`Phase E is mock-only right now. Set config.dataMode="mock".`);
+  let results = [];
+  if (runtime2.config.dataMode === "mock") {
+    results = runMockRequests(runtime2, flightId, Number(departTs));
+  } else if (runtime2.config.dataMode === "live") {
+    results = runSchipholRequest(runtime2, flightId, Number(departTs));
+  } else {
+    throw new Error(`dataMode=${runtime2.config.dataMode} not implemented yet`);
   }
-  const mockResults = runMockRequests(runtime2, flightId, Number(departTs), runtime2.config.mockProfile);
-  const sources = mockResults.map(({ provider, resp }) => {
+  const sources = results.map(({ provider, resp }) => {
     try {
       const normalized = normalize(provider, flightId, resp);
       return makeEvidenceSource(provider, resp.statusCode, resp.rawJsonString, normalized);
@@ -16942,8 +17226,8 @@ var onSettlementRequested = (runtime2, log) => {
   const generatedAtTs = Math.floor(Date.now() / 1000);
   const { canonicalJson, evidenceHash, pack } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.3.0-phase-e-write",
-    dataMode: "mock",
+    workflowVersion: "0.4.1-schiphol-by-id",
+    dataMode: runtime2.config.dataMode,
     mockProfile: runtime2.config.mockProfile,
     generatedAtTs,
     marketId: marketId.toString(),
@@ -16960,15 +17244,12 @@ var onSettlementRequested = (runtime2, log) => {
   runtime2.log(`Consensus delayMinutes=${delayMinutes} => delayed=${delayed}`);
   const reportPayloadHex = encodeAbiParameters(parseAbiParameters("uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash"), [marketId, delayed, BigInt(delayMinutes), evidenceHash]);
   const reportPayloadB64 = hexToBase64(reportPayloadHex);
-  runtime2.log(`Built report payload (hex): ${reportPayloadHex}`);
-  runtime2.log(`Built report payload (b64): ${reportPayloadB64}`);
   const reportResponse = runtime2.report({
     encodedPayload: reportPayloadB64,
     encoderName: "evm",
     signingAlgo: "ecdsa",
     hashingAlgo: "keccak256"
   }).result();
-  runtime2.log(`Report generated. Submitting onchain via evmClient.writeReport...`);
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: runtime2.config.chainSelectorName,
@@ -16983,10 +17264,10 @@ var onSettlementRequested = (runtime2, log) => {
     gasConfig: { gasLimit: runtime2.config.gasLimit }
   }).result();
   const txHashHex = bytesToHex(writeResult.txHash ?? new Uint8Array(32));
-  const writeTxStatus = writeResult.txStatus ?? "UNKNOWN";
-  const receiverExecutionStatus = writeResult.receiverContractExecutionStatus ?? "UNKNOWN";
+  const writeTxStatus = String(writeResult.txStatus ?? "UNKNOWN");
+  const receiverExecutionStatus = String(writeResult.receiverContractExecutionStatus ?? "UNKNOWN");
   const transactionFeeWei = (writeResult.transactionFee ?? 0n).toString();
-  const errorMessage = writeResult.errorMessage ?? "";
+  const errorMessage = String(writeResult.errorMessage ?? "");
   runtime2.log(`Write report tx hash: ${txHashHex}`);
   runtime2.log(`TxStatus=${writeTxStatus}, ReceiverStatus=${receiverExecutionStatus}, FeeWei=${transactionFeeWei}`);
   if (errorMessage.length > 0)
@@ -17009,37 +17290,23 @@ var onSettlementRequested = (runtime2, log) => {
     errorMessage
   };
 };
-var initWorkflow = (rawConfig) => {
-  const chainSelectorName = requireStringField("chainSelectorName", rawConfig.chainSelectorName);
-  const flightMarketAddress = requireStringField("flightMarketAddress", rawConfig.flightMarketAddress);
-  const receiverAddress = requireStringField("receiverAddress", rawConfig.receiverAddress);
-  const gasLimit = requireStringField("gasLimit", rawConfig.gasLimit);
-  const dataMode = requireEnumField("dataMode", rawConfig.dataMode, [
-    "mock",
-    "live"
-  ]);
-  const mockProfile = requireStringField("mockProfile", rawConfig.mockProfile);
-  const config = {
-    chainSelectorName,
-    flightMarketAddress,
-    receiverAddress,
-    gasLimit,
-    dataMode,
-    mockProfile
-  };
-  mustBeHexAddress("flightMarketAddress", config.flightMarketAddress);
-  mustBeHexAddress("receiverAddress", config.receiverAddress);
+var initWorkflow = (raw) => {
+  const chainSelectorName = requireString("chainSelectorName", raw.chainSelectorName);
+  const marketAddress = requireString("marketAddress", raw.marketAddress);
+  const receiverAddress = requireString("receiverAddress", raw.receiverAddress);
+  requireAddress("marketAddress", marketAddress);
+  requireAddress("receiverAddress", receiverAddress);
   const network248 = getNetwork({
     chainFamily: "evm",
-    chainSelectorName: config.chainSelectorName,
+    chainSelectorName,
     isTestnet: true
   });
   if (!network248)
-    throw new Error(`Network not found: ${config.chainSelectorName}`);
+    throw new Error(`Network not found: ${chainSelectorName}`);
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   return [
     handler(evmClient.logTrigger({
-      addresses: [hexToBase64(config.flightMarketAddress)],
+      addresses: [hexToBase64(marketAddress)],
       topics: [{ values: [hexToBase64(SETTLEMENT_EVENT_HASH)] }],
       confidence: "CONFIDENCE_LEVEL_FINALIZED"
     }), onSettlementRequested)

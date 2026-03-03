@@ -18,18 +18,26 @@ import {
 } from "viem";
 
 import type { FlightAPIResponse } from "./types.js";
-import { mockAirOne, mockSkyTwo } from "./mockProviders.js";
 import { normalize } from "./normalize.js";
 import { buildEvidencePack, makeEvidenceSource } from "./evidence.js";
+import { fetchSchipholFlight } from "./providers/schiphol.js";
+import { mockAirOne, mockSkyTwo } from "./providers/mockProviders.js";
 
 type Config = {
   chainSelectorName: string;
-  flightMarketAddress: string;
+  marketAddress: string;
   receiverAddress: string;
   gasLimit: string;
 
-  dataMode: "mock" | "live";
-  mockProfile: string;
+  dataMode: "mock" | "schiphol" | "live";
+
+  // mock
+  mockProfile?: string;
+
+  // schiphol
+  schipholBaseUrl?: string;
+  schipholResourceVersion?: string;
+  schipholWindowSeconds?: string;
 };
 
 // event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin);
@@ -41,35 +49,14 @@ const SETTLEMENT_EVENT_SIG =
   "SettlementRequested(uint256,string,uint256,uint256)";
 const SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
 
-function requireStringField(name: keyof Config, value: unknown): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(
-      `Missing/invalid config field "${String(name)}". ` +
-        `Check workflows/flight-delay/workflow.yaml config-path and the JSON file it points to.`,
-    );
-  }
-  return value;
+function requireString(label: string, v: unknown): string {
+  if (typeof v !== "string" || v.length === 0)
+    throw new Error(`Missing/invalid config: ${label}`);
+  return v;
 }
-
-function requireEnumField<T extends string>(
-  name: keyof Config,
-  value: unknown,
-  allowed: readonly T[],
-): T {
-  if (typeof value !== "string" || !allowed.includes(value as T)) {
-    throw new Error(
-      `Missing/invalid config field "${String(name)}". Expected one of: ${allowed.join(", ")}.`,
-    );
-  }
-  return value as T;
-}
-
-function mustBeHexAddress(label: string, addr: string) {
-  if (typeof addr !== "string")
-    throw new Error(`${label} must be a string address, got ${typeof addr}`);
-  if (!addr.startsWith("0x") || addr.length !== 42) {
-    throw new Error(`${label} must be 0x + 40 hex chars. Got: ${addr}`);
-  }
+function requireAddress(label: string, addr: string) {
+  if (!addr.startsWith("0x") || addr.length !== 42)
+    throw new Error(`${label} must be 0x + 40 hex chars`);
 }
 
 type SettlementPreview = {
@@ -82,7 +69,9 @@ type SettlementPreview = {
   evidenceHash: `0x${string}`;
   evidenceCanonicalJson: string;
   reportPayloadHex: `0x${string}`;
-  reportPayloadB64: string;
+  reportPayloadB64: `0x${string}` | string;
+
+  // ALWAYS defined (no undefined/null)
   writeTxHashHex: `0x${string}`;
   writeTxStatus: string;
   receiverExecutionStatus: string;
@@ -94,14 +83,53 @@ function runMockRequests(
   runtime: Runtime<Config>,
   flightId: string,
   departTs: number,
-  mockProfile: string,
 ): Array<{ provider: string; resp: FlightAPIResponse }> {
-  runtime.log(`Phase E: using MOCK providers only (profile=${mockProfile})`);
-  const ctx = { flightId, departTs, mockProfile };
+  const profile = runtime.config.mockProfile ?? "default";
+  runtime.log(`Using MOCK providers only (profile=${profile})`);
+  const ctx = { flightId, departTs, mockProfile: profile };
   return [
     { provider: "MockAirOne", resp: mockAirOne(ctx) },
     { provider: "MockSkyTwo", resp: mockSkyTwo(ctx) },
   ];
+}
+
+function runSchipholRequest(
+  runtime: Runtime<Config>,
+  flightId: string,
+  departTs: number,
+): Array<{ provider: string; resp: FlightAPIResponse }> {
+  const baseUrl =
+    runtime.config.schipholBaseUrl ?? "https://api.schiphol.nl/public-flights";
+  const resourceVersion = runtime.config.schipholResourceVersion ?? "v4";
+  const windowSeconds = Number(runtime.config.schipholWindowSeconds ?? "43200");
+
+  const appId = runtime.getSecret({ id: "SCHIPHOL_APP_ID" }).result().value;
+  const appKey = runtime.getSecret({ id: "SCHIPHOL_APP_KEY" }).result().value;
+  if (!appId || !appKey)
+    throw new Error(
+      "Missing Schiphol secrets: SCHIPHOL_APP_ID / SCHIPHOL_APP_KEY",
+    );
+
+  const headers: Record<string, string> = {
+    accept: "application/json",
+    ResourceVersion: resourceVersion,
+    app_id: appId,
+    app_key: appKey,
+  };
+
+  // Provider handles lookup (if needed) and then always calls /flights/{id}
+  const resp = fetchSchipholFlight(runtime, {
+    headers,
+    flightId,
+    departTs,
+    cfg: {
+      schipholBaseUrl: baseUrl,
+      schipholResourceVersion: resourceVersion,
+      schipholWindowSeconds: windowSeconds,
+    },
+  });
+
+  return [{ provider: "Schiphol", resp }];
 }
 
 const onSettlementRequested = (
@@ -114,16 +142,17 @@ const onSettlementRequested = (
   ];
   const data = bytesToHex(log.data);
 
-  const decoded = decodeEventLog({
-    abi: settlementEventAbi,
-    data,
-    topics,
-  });
-
-  if (decoded.eventName !== "SettlementRequested") {
-    throw new Error(`Unexpected event: ${decoded.eventName}`);
+  // Guard against selecting the wrong log index
+  const topic0 = topics[0]?.toLowerCase();
+  const expected = SETTLEMENT_EVENT_HASH.toLowerCase();
+  if (topic0 !== expected) {
+    throw new Error(
+      `Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}. ` +
+        `Use the requestSettlement tx hash and pick the correct log index.`,
+    );
   }
 
+  const decoded = decodeEventLog({ abi: settlementEventAbi, data, topics });
   const { marketId, flightId, departTs, thresholdMin } =
     decoded.args as unknown as {
       marketId: bigint;
@@ -138,22 +167,18 @@ const onSettlementRequested = (
   runtime.log(`  departTs      = ${departTs.toString()}`);
   runtime.log(`  thresholdMin  = ${thresholdMin.toString()}`);
 
-  if (runtime.config.dataMode !== "mock") {
-    throw new Error(
-      `Phase E is mock-only right now. Set config.dataMode="mock".`,
-    );
+  // 1) Fetch data
+  let results: Array<{ provider: string; resp: FlightAPIResponse }> = [];
+  if (runtime.config.dataMode === "mock") {
+    results = runMockRequests(runtime, flightId, Number(departTs));
+  } else if (runtime.config.dataMode === "live") {
+    results = runSchipholRequest(runtime, flightId, Number(departTs));
+  } else {
+    throw new Error(`dataMode=${runtime.config.dataMode} not implemented yet`);
   }
 
-  // 1) Mock “requests”
-  const mockResults = runMockRequests(
-    runtime,
-    flightId,
-    Number(departTs),
-    runtime.config.mockProfile,
-  );
-
   // 2) Normalize + evidence sources
-  const sources = mockResults.map(({ provider, resp }) => {
+  const sources = results.map(({ provider, resp }) => {
     try {
       const normalized = normalize(provider, flightId, resp);
       return makeEvidenceSource(
@@ -174,12 +199,12 @@ const onSettlementRequested = (
     }
   });
 
-  // 3) Build Evidence Pack + hash
+  // 3) Evidence + hash
   const generatedAtTs = Math.floor(Date.now() / 1000);
   const { canonicalJson, evidenceHash, pack } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.3.0-phase-e-write",
-    dataMode: "mock",
+    workflowVersion: "0.4.1-schiphol-by-id",
+    dataMode: runtime.config.dataMode,
     mockProfile: runtime.config.mockProfile,
     generatedAtTs,
 
@@ -197,11 +222,9 @@ const onSettlementRequested = (
 
   const delayMinutes = pack.resolution.consensusDelayMinutes;
   const delayed = pack.resolution.delayed;
-
   runtime.log(`Consensus delayMinutes=${delayMinutes} => delayed=${delayed}`);
 
-  // 4) Build report payload for FlightMarket.onReport(report)
-  // ABI: (uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash)
+  // 4) Report payload
   const reportPayloadHex = encodeAbiParameters(
     parseAbiParameters(
       "uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash",
@@ -210,10 +233,7 @@ const onSettlementRequested = (
   );
   const reportPayloadB64 = hexToBase64(reportPayloadHex);
 
-  runtime.log(`Built report payload (hex): ${reportPayloadHex}`);
-  runtime.log(`Built report payload (b64): ${reportPayloadB64}`);
-
-  // 5) Generate signed report
+  // 5) Signed report
   const reportResponse = runtime
     .report({
       encodedPayload: reportPayloadB64,
@@ -223,12 +243,7 @@ const onSettlementRequested = (
     })
     .result();
 
-  runtime.log(
-    `Report generated. Submitting onchain via evmClient.writeReport...`,
-  );
-
-  // 6) PHASE E: submit report onchain (dry-run unless CLI uses --broadcast)
-  // writeReport signature: receiver + report + optional gasConfig :contentReference[oaicite:2]{index=2}
+  // 6) Onchain write (dry-run unless --broadcast)
   const network = getNetwork({
     chainFamily: "evm",
     chainSelectorName: runtime.config.chainSelectorName,
@@ -236,6 +251,7 @@ const onSettlementRequested = (
   });
   if (!network)
     throw new Error(`Network not found: ${runtime.config.chainSelectorName}`);
+
   const evmClient = new EVMClient(network.chainSelector.selector);
 
   const writeResult = evmClient
@@ -249,20 +265,19 @@ const onSettlementRequested = (
   const txHashHex = bytesToHex(
     writeResult.txHash ?? new Uint8Array(32),
   ) as `0x${string}`;
-  const writeTxStatus = (writeResult.txStatus ??
-    "UNKNOWN") as unknown as string;
-  const receiverExecutionStatus =
-    (writeResult.receiverContractExecutionStatus ?? "UNKNOWN") as string;
+  const writeTxStatus = String(writeResult.txStatus ?? "UNKNOWN");
+  const receiverExecutionStatus = String(
+    writeResult.receiverContractExecutionStatus ?? "UNKNOWN",
+  );
   const transactionFeeWei = (
     (writeResult.transactionFee ?? 0n) as bigint
   ).toString();
-  const errorMessage = (writeResult.errorMessage ?? "") as string;
+  const errorMessage = String(writeResult.errorMessage ?? "");
 
   runtime.log(`Write report tx hash: ${txHashHex}`);
   runtime.log(
     `TxStatus=${writeTxStatus}, ReceiverStatus=${receiverExecutionStatus}, FeeWei=${transactionFeeWei}`,
   );
-
   if (errorMessage.length > 0) runtime.log(`ErrorMessage=${errorMessage}`);
 
   return {
@@ -284,56 +299,30 @@ const onSettlementRequested = (
   };
 };
 
-const initWorkflow = (rawConfig: Config) => {
-  // Validate config early
-  const chainSelectorName = requireStringField(
+const initWorkflow = (raw: Config) => {
+  const chainSelectorName = requireString(
     "chainSelectorName",
-    (rawConfig as any).chainSelectorName,
+    raw.chainSelectorName,
   );
-  const flightMarketAddress = requireStringField(
-    "flightMarketAddress",
-    (rawConfig as any).flightMarketAddress,
-  );
-  const receiverAddress = requireStringField(
-    "receiverAddress",
-    (rawConfig as any).receiverAddress,
-  );
-  const gasLimit = requireStringField("gasLimit", (rawConfig as any).gasLimit);
-  const dataMode = requireEnumField("dataMode", (rawConfig as any).dataMode, [
-    "mock",
-    "live",
-  ] as const);
-  const mockProfile = requireStringField(
-    "mockProfile",
-    (rawConfig as any).mockProfile,
-  );
+  const marketAddress = requireString("marketAddress", raw.marketAddress);
+  const receiverAddress = requireString("receiverAddress", raw.receiverAddress);
 
-  const config: Config = {
-    chainSelectorName,
-    flightMarketAddress,
-    receiverAddress,
-    gasLimit,
-    dataMode,
-    mockProfile,
-  };
-
-  mustBeHexAddress("flightMarketAddress", config.flightMarketAddress);
-  mustBeHexAddress("receiverAddress", config.receiverAddress);
+  requireAddress("marketAddress", marketAddress);
+  requireAddress("receiverAddress", receiverAddress);
 
   const network = getNetwork({
     chainFamily: "evm",
-    chainSelectorName: config.chainSelectorName,
+    chainSelectorName,
     isTestnet: true,
   });
-  if (!network)
-    throw new Error(`Network not found: ${config.chainSelectorName}`);
+  if (!network) throw new Error(`Network not found: ${chainSelectorName}`);
 
   const evmClient = new EVMClient(network.chainSelector.selector);
 
   return [
     handler(
       evmClient.logTrigger({
-        addresses: [hexToBase64(config.flightMarketAddress)],
+        addresses: [hexToBase64(marketAddress)],
         topics: [{ values: [hexToBase64(SETTLEMENT_EVENT_HASH)] }],
         confidence: "CONFIDENCE_LEVEL_FINALIZED",
       }),

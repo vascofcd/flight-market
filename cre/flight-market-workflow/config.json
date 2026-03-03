@@ -1,8 +1,11 @@
 {
   "chainSelectorName": "ethereum-testnet-sepolia",
   "gasLimit": "1000000",
-  "flightMarketAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
+  "marketAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
   "receiverAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
-  "dataMode": "mock",
-  "mockProfile": "default"
+  "dataMode": "live",
+  "mockProfile": "default",
+  "schipholBaseUrl": "https://api.schiphol.nl/public-flights",
+  "schipholResourceVersion": "v4",
+  "schipholWindowSeconds": "43200"
 }

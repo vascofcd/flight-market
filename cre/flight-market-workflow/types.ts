@@ -6,9 +6,9 @@ export type FlightAPIResponse = {
 export type NormalizedFlightStatus = {
   provider: string;
   flightId: string;
-  scheduledDepartureTs: number;
-  actualDepartureTs: number;
-  delayMinutes: number;
+  scheduledDepartureTs: number; // unix seconds
+  actualDepartureTs: number; // unix seconds
+  delayMinutes: number; // >= 0
 };
 
 export type EvidenceSource = {
@@ -39,10 +39,10 @@ export type EvidencePack = {
     thresholdMin: string;
   };
   resolution: {
-    metric: "departure_delay_minutes";
+    metric: "schedule_to_actual_minutes";
     method: "median_of_sources";
     sourcesUsed: string[];
-    delays: Record<string, number>; // provider -> delayMinutes
+    delays: Record<string, number>;
     consensusDelayMinutes: number;
     thresholdMin: number;
     delayed: boolean;

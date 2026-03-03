@@ -57,7 +57,7 @@ export function buildEvidencePack(inputs: EvidenceInputs): {
       thresholdMin: inputs.thresholdMin,
     },
     resolution: {
-      metric: "departure_delay_minutes",
+      metric: "schedule_to_actual_minutes",
       method: "median_of_sources",
       sourcesUsed: used,
       delays,
