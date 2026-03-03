@@ -8135,11 +8135,6 @@ var LATEST_BLOCK_NUMBER = {
   absVal: Buffer.from([2]).toString("base64"),
   sign: "-1"
 };
-var decodeJson = (input) => {
-  const decoder = new TextDecoder("utf-8");
-  const textBody = decoder.decode(input);
-  return JSON.parse(textBody);
-};
 function text(responseOrFn) {
   if (typeof responseOrFn === "function") {
     return {
@@ -8149,14 +8144,6 @@ function text(responseOrFn) {
     const decoder = new TextDecoder("utf-8");
     return decoder.decode(responseOrFn.body).trim();
   }
-}
-function json(responseOrFn) {
-  if (typeof responseOrFn === "function") {
-    return {
-      result: () => json(responseOrFn().result)
-    };
-  }
-  return decodeJson(responseOrFn.body);
 }
 function ok(responseOrFn) {
   if (typeof responseOrFn === "function") {
@@ -12437,8 +12424,8 @@ var ZodIssueCode = util.arrayToEnum([
   "not_finite"
 ]);
 var quotelessJson = (obj) => {
-  const json2 = JSON.stringify(obj, null, 2);
-  return json2.replace(/"([^"]+)":/g, "$1:");
+  const json = JSON.stringify(obj, null, 2);
+  return json.replace(/"([^"]+)":/g, "$1:");
 };
 
 class ZodError extends Error {
@@ -16805,143 +16792,121 @@ function sha3HexString(s) {
 function clampNonNegative(n) {
   return n < 0 ? 0 : n;
 }
-function pickActualTimeMs(f) {
-  if (f.flightDirection === "A") {
+function pickActualOrEstimated(f) {
+  const dir = f.flightDirection ?? "?";
+  if (dir === "A") {
     if (f.actualLandingTime)
-      return {
-        ms: Date.parse(f.actualLandingTime),
-        field: "actualLandingTime"
-      };
+      return { iso: f.actualLandingTime, field: "actualLandingTime" };
     if (f.estimatedLandingTime)
-      return {
-        ms: Date.parse(f.estimatedLandingTime),
-        field: "estimatedLandingTime"
-      };
+      return { iso: f.estimatedLandingTime, field: "estimatedLandingTime" };
   }
-  if (f.flightDirection === "D") {
+  if (dir === "D") {
     if (f.actualOffBlockTime)
-      return {
-        ms: Date.parse(f.actualOffBlockTime),
-        field: "actualOffBlockTime"
-      };
+      return { iso: f.actualOffBlockTime, field: "actualOffBlockTime" };
     if (f.publicEstimatedOffBlockTime)
       return {
-        ms: Date.parse(f.publicEstimatedOffBlockTime),
+        iso: f.publicEstimatedOffBlockTime,
         field: "publicEstimatedOffBlockTime"
       };
   }
   if (f.actualLandingTime)
-    return { ms: Date.parse(f.actualLandingTime), field: "actualLandingTime" };
+    return { iso: f.actualLandingTime, field: "actualLandingTime" };
   if (f.estimatedLandingTime)
-    return {
-      ms: Date.parse(f.estimatedLandingTime),
-      field: "estimatedLandingTime"
-    };
+    return { iso: f.estimatedLandingTime, field: "estimatedLandingTime" };
   if (f.actualOffBlockTime)
-    return {
-      ms: Date.parse(f.actualOffBlockTime),
-      field: "actualOffBlockTime"
-    };
+    return { iso: f.actualOffBlockTime, field: "actualOffBlockTime" };
   if (f.publicEstimatedOffBlockTime)
     return {
-      ms: Date.parse(f.publicEstimatedOffBlockTime),
+      iso: f.publicEstimatedOffBlockTime,
       field: "publicEstimatedOffBlockTime"
     };
-  return { ms: NaN, field: "none" };
+  throw new Error("No usable actual/estimated time field found (flight not ready)");
 }
-function normalize(provider, flightId, resp) {
-  const raw = JSON.parse(resp.rawJsonString);
-  if (provider === "MockAirOne") {
-    const o = raw;
-    const delay = clampNonNegative(Math.floor((o.actualDepartureTs - o.scheduledDepartureTs) / 60));
-    return {
-      provider,
-      flightId,
-      scheduledDepartureTs: o.scheduledDepartureTs,
-      actualDepartureTs: o.actualDepartureTs,
-      delayMinutes: delay
-    };
+function normalize(provider, marketFlightId, resp) {
+  if (provider !== "SchipholById") {
+    throw new Error(`No normalizer implemented for provider=${provider}`);
   }
-  if (provider === "MockSkyTwo") {
-    const o = raw;
-    const delay = clampNonNegative(Math.floor((o.times.actualDepartureTs - o.times.scheduledDepartureTs) / 60));
-    return {
-      provider,
-      flightId,
-      scheduledDepartureTs: o.times.scheduledDepartureTs,
-      actualDepartureTs: o.times.actualDepartureTs,
-      delayMinutes: delay
-    };
+  const rawObj = JSON.parse(resp.rawJsonString);
+  const f = rawObj?.flight ?? rawObj;
+  const states = (f.publicFlightState?.flightStates ?? []).filter((x) => typeof x === "string");
+  const cancelled = states.includes("CNX");
+  const diverted = states.includes("DIV");
+  if (!f.scheduleDateTime)
+    throw new Error("Missing scheduleDateTime");
+  const scheduledMs = Date.parse(f.scheduleDateTime);
+  if (!Number.isFinite(scheduledMs))
+    throw new Error("Invalid scheduleDateTime");
+  let actualIso = "";
+  let usedField = "";
+  let actualMs = NaN;
+  try {
+    const pick = pickActualOrEstimated(f);
+    actualIso = pick.iso;
+    usedField = pick.field;
+    actualMs = Date.parse(actualIso);
+  } catch {
+    if (!cancelled && !diverted) {
+      throw new Error("Flight not ready: missing actual/estimated time and not CNX/DIV");
+    }
   }
-  if (provider === "Schiphol") {
-    const o = raw;
-    if (!o.flight || !o.flight.scheduleDateTime)
-      throw new Error("Schiphol response missing scheduleDateTime");
-    const scheduledMs = Date.parse(o.flight.scheduleDateTime);
-    const actualPick = pickActualTimeMs(o.flight);
-    if (!Number.isFinite(scheduledMs))
-      throw new Error("Invalid scheduleDateTime");
-    if (!Number.isFinite(actualPick.ms))
-      throw new Error("No usable actual/estimated time fields");
-    const delay = clampNonNegative(Math.floor((actualPick.ms - scheduledMs) / 60000));
-    return {
-      provider,
-      flightId,
-      scheduledDepartureTs: Math.floor(scheduledMs / 1000),
-      actualDepartureTs: Math.floor(actualPick.ms / 1000),
-      delayMinutes: delay
-    };
-  }
-  throw new Error(`No normalizer implemented for provider=${provider}`);
-}
-function medianConsensus(delays) {
-  if (delays.length === 0)
-    throw new Error("No delays provided");
-  const sorted = [...delays].sort((a, b) => a - b);
-  const n = sorted.length;
-  if (n === 1)
-    return sorted[0];
-  const mid1 = sorted[n / 2 - 1];
-  const mid2 = sorted[n / 2];
-  return Math.floor((mid1 + mid2) / 2);
+  const delay = Number.isFinite(actualMs) ? clampNonNegative(Math.floor((actualMs - scheduledMs) / 60000)) : 0;
+  return {
+    provider,
+    schipholId: (f.id ?? marketFlightId) || marketFlightId,
+    flightName: f.flightName ?? f.mainFlight ?? "",
+    flightDirection: f.flightDirection ?? "?",
+    flightStates: states,
+    scheduledTs: Math.floor(scheduledMs / 1000),
+    actualOrEstimatedTs: Number.isFinite(actualMs) ? Math.floor(actualMs / 1000) : 0,
+    usedTimeField: usedField || (cancelled ? "cancelled_no_time" : diverted ? "diverted_no_time" : "unknown"),
+    delayMinutes: delay,
+    cancelled,
+    diverted
+  };
 }
 function buildEvidencePack(inputs) {
-  const threshold = Number(inputs.thresholdMin);
-  const okSources = inputs.sources.filter((s) => s.ok && s.normalized);
-  const delays = {};
-  const used = [];
-  for (const s of okSources) {
-    const d = s.normalized.delayMinutes;
-    delays[s.provider] = d;
-    used.push(s.provider);
+  if (!inputs.source.normalized) {
+    throw new Error("Cannot build evidence pack: source not normalized");
   }
-  const consensusDelayMinutes = medianConsensus(Object.values(delays));
-  const delayed = consensusDelayMinutes >= threshold;
+  const n = inputs.source.normalized;
+  const threshold = Number(inputs.thresholdMin);
+  const cancelled = n.cancelled;
+  const diverted = n.diverted;
+  const delayMinutes = n.delayMinutes;
+  const status = cancelled ? "CANCELLED" : diverted ? "DIVERTED" : delayMinutes >= threshold ? "DELAYED" : "ON_TIME";
+  const settledAsDisruption = cancelled || diverted || delayMinutes >= threshold;
+  const scheduledIso = new Date(n.scheduledTs * 1000).toISOString();
+  const actualIso = n.actualOrEstimatedTs ? new Date(n.actualOrEstimatedTs * 1000).toISOString() : "";
   const pack = {
-    schema: "flight.market.evidence.v1",
+    schema: "flight.market.evidence.v2",
     workflow: {
       name: inputs.workflowName,
       version: inputs.workflowVersion,
-      dataMode: inputs.dataMode,
-      mockProfile: inputs.mockProfile,
+      dataMode: "schiphol_by_id",
       generatedAtTs: inputs.generatedAtTs
     },
     market: {
       marketId: inputs.marketId,
-      flightId: inputs.flightId,
+      schipholFlightId: inputs.schipholFlightId,
       departTs: inputs.departTs,
       thresholdMin: inputs.thresholdMin
     },
-    resolution: {
-      metric: "schedule_to_actual_minutes",
-      method: "median_of_sources",
-      sourcesUsed: used,
-      delays,
-      consensusDelayMinutes,
+    computed: {
+      cancelled,
+      diverted,
+      delayMinutes,
       thresholdMin: threshold,
-      delayed
+      status,
+      settledAsDisruption
     },
-    sources: inputs.sources
+    schiphol: {
+      flightDirection: n.flightDirection,
+      flightStates: n.flightStates,
+      usedTimeField: n.usedTimeField,
+      scheduledIso,
+      actualOrEstimatedIso: actualIso
+    },
+    sources: [inputs.source]
   };
   const canonicalJson = canonicalStringify(pack);
   const evidenceHash = sha3HexString(canonicalJson);
@@ -16961,191 +16926,37 @@ function makeEvidenceSource(provider, statusCode, rawJson, normalized, error) {
     error
   };
 }
-function isoLocalNoOffsetUTC(epochSeconds) {
-  const d = new Date(epochSeconds * 1000);
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mi = String(d.getUTCMinutes()).padStart(2, "0");
-  const ss = String(d.getUTCSeconds()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
-}
-function encodeQuery(params) {
-  const keys = Object.keys(params).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
-  return keys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
-}
 function baseUrl(cfg) {
-  return cfg.schipholBaseUrl.replace(/\/+$/, "");
-}
-function buildLookupUrl(flightName, departTs, cfg) {
-  const from2 = departTs - cfg.schipholWindowSeconds;
-  const to = departTs + cfg.schipholWindowSeconds;
-  const params = {
-    flightName,
-    fromDateTime: isoLocalNoOffsetUTC(from2),
-    toDateTime: isoLocalNoOffsetUTC(to),
-    searchDateTimeField: "scheduleDateTime",
-    sort: "+scheduleDateTime"
-  };
-  return `${baseUrl(cfg)}/flights?${encodeQuery(params)}`;
+  return cfg.baseUrl.replace(/\/+$/, "");
 }
 function buildByIdUrl(id, cfg) {
   return `${baseUrl(cfg)}/flights/${encodeURIComponent(id)}`;
 }
-function looksLikeSchipholId(s) {
-  return /^[0-9]{12,}$/.test(s);
-}
-function matchesFlightId(f, flightId) {
-  const want = flightId.toUpperCase();
-  const name = (f.flightName ?? "").toUpperCase();
-  const main = (f.mainFlight ?? "").toUpperCase();
-  const codeshares = (f.codeshares?.codeshares ?? []).map((x) => x.toUpperCase());
-  return name === want || main === want || codeshares.includes(want);
-}
-function pickBestFlight(list, flightId, departTs) {
-  const flights = list.flights ?? [];
-  const candidates = flights.filter((f) => matchesFlightId(f, flightId));
-  if (candidates.length === 0)
-    return null;
-  let best = candidates[0];
-  let bestDiff = Number.POSITIVE_INFINITY;
-  for (const f of candidates) {
-    const sched = f.scheduleDateTime ? Date.parse(f.scheduleDateTime) : NaN;
-    if (!Number.isFinite(sched))
-      continue;
-    const diff = Math.abs(sched - departTs * 1000);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = f;
-    }
-  }
-  return best;
-}
-function slimFlight(f, resolvedId) {
-  return {
-    provider: "Schiphol",
-    resolvedId,
-    id: f.id ?? "",
-    flightName: f.flightName ?? "",
-    mainFlight: f.mainFlight ?? "",
-    flightDirection: f.flightDirection ?? "",
-    scheduleDateTime: f.scheduleDateTime ?? "",
-    actualLandingTime: f.actualLandingTime ?? "",
-    estimatedLandingTime: f.estimatedLandingTime ?? "",
-    actualOffBlockTime: f.actualOffBlockTime ?? "",
-    publicEstimatedOffBlockTime: f.publicEstimatedOffBlockTime ?? "",
-    codeshares: f.codeshares?.codeshares ?? []
-  };
-}
-var doRequest = (sendRequester, url, headers) => {
+var fetchById = (sendRequester, q) => {
   const response = sendRequester.sendRequest({
-    url,
+    url: q.url,
     method: "GET",
-    headers
+    headers: q.headers
   }).result();
   const statusCode = response.statusCode;
   const bodyText = text(response);
-  return { statusCode, bodyText, ok: ok(response) };
+  if (!ok(response))
+    return { statusCode, rawJsonString: bodyText };
+  return { statusCode, rawJsonString: bodyText };
 };
-var fetchLookup = (sendRequester, q) => {
-  const r = doRequest(sendRequester, q.url, q.headers);
-  return { statusCode: r.statusCode, rawJsonString: r.bodyText };
-};
-var fetchById = (sendRequester, q) => {
-  const r = doRequest(sendRequester, q.url, q.headers);
-  return { statusCode: r.statusCode, rawJsonString: r.bodyText };
-};
-function fetchSchipholFlight(runtime2, q) {
+function fetchSchipholById(runtime2, q) {
+  const url = buildByIdUrl(q.id, q.cfg);
+  runtime2.log(`SchipholById GET ${url}`);
   const httpClient = new ClientCapability2;
-  if (looksLikeSchipholId(q.flightId)) {
-    const url = buildByIdUrl(q.flightId, q.cfg);
-    runtime2.log(`Schiphol: using BY-ID endpoint directly: ${url}`);
-    const raw = httpClient.sendRequest(runtime2, fetchById, consensusIdenticalAggregation())({ url, headers: q.headers }).result();
-    try {
-      const obj = JSON.parse(raw.rawJsonString);
-      return { statusCode: raw.statusCode, rawJsonString: JSON.stringify({ flight: slimFlight(obj, q.flightId) }) };
-    } catch {
-      return raw;
-    }
-  }
-  const lookupUrl = buildLookupUrl(q.flightId, q.departTs, q.cfg);
-  runtime2.log(`Schiphol: lookup to resolve id: ${lookupUrl}`);
-  const lookupRaw = httpClient.sendRequest(runtime2, fetchLookup, consensusIdenticalAggregation())({ url: lookupUrl, headers: q.headers }).result();
-  if (lookupRaw.statusCode < 200 || lookupRaw.statusCode >= 300)
-    return lookupRaw;
-  let resolvedId = "";
-  try {
-    const parsed = json({ statusCode: lookupRaw.statusCode, body: new TextEncoder().encode(lookupRaw.rawJsonString) });
-    const best = pickBestFlight(parsed, q.flightId, q.departTs);
-    resolvedId = best?.id ?? "";
-  } catch {
-    try {
-      const parsed2 = JSON.parse(lookupRaw.rawJsonString);
-      const best2 = pickBestFlight(parsed2, q.flightId, q.departTs);
-      resolvedId = best2?.id ?? "";
-    } catch {
-      return { statusCode: lookupRaw.statusCode, rawJsonString: JSON.stringify({ error: "LOOKUP_PARSE_FAILED" }) };
-    }
-  }
-  if (!resolvedId) {
-    return { statusCode: 200, rawJsonString: JSON.stringify({ error: "FLIGHT_NOT_FOUND", flightId: q.flightId }) };
-  }
-  const byIdUrl = buildByIdUrl(resolvedId, q.cfg);
-  runtime2.log(`Schiphol: resolved id=${resolvedId}, calling BY-ID endpoint: ${byIdUrl}`);
-  const byIdRaw = httpClient.sendRequest(runtime2, fetchById, consensusIdenticalAggregation())({ url: byIdUrl, headers: q.headers }).result();
-  if (byIdRaw.statusCode < 200 || byIdRaw.statusCode >= 300)
-    return byIdRaw;
-  try {
-    const flight = JSON.parse(byIdRaw.rawJsonString);
-    return { statusCode: byIdRaw.statusCode, rawJsonString: JSON.stringify({ flight: slimFlight(flight, resolvedId) }) };
-  } catch {
-    return byIdRaw;
-  }
-}
-function baseDelayMinutes(ctx) {
-  const seed = keccak256(toBytes(`${ctx.mockProfile}|${ctx.flightId}|${ctx.departTs}`));
-  const n = BigInt(seed) % 181n;
-  return Number(n);
-}
-function makeResponse(obj) {
-  return {
-    statusCode: 200,
-    rawJsonString: JSON.stringify(obj)
-  };
-}
-function mockAirOne(ctx) {
-  const delay = Math.max(0, baseDelayMinutes(ctx) - 3);
-  const scheduled = ctx.departTs;
-  const actual = ctx.departTs + delay * 60;
-  return makeResponse({
-    provider: "MockAirOne",
-    flightId: ctx.flightId,
-    scheduledDepartureTs: scheduled,
-    actualDepartureTs: actual,
-    status: delay === 0 ? "on_time" : "departed_late",
-    note: "MOCK_ONLY_PHASE_D"
-  });
-}
-function mockSkyTwo(ctx) {
-  const delay = Math.min(180, baseDelayMinutes(ctx) + 4);
-  const scheduled = ctx.departTs;
-  const actual = ctx.departTs + delay * 60;
-  return makeResponse({
-    provider: "MockSkyTwo",
-    flightId: ctx.flightId,
-    times: {
-      scheduledDepartureTs: scheduled,
-      actualDepartureTs: actual
-    },
-    status: delay === 0 ? "on_time" : "delayed",
-    note: "MOCK_ONLY_PHASE_D"
-  });
+  return httpClient.sendRequest(runtime2, fetchById, consensusIdenticalAggregation())({
+    url,
+    headers: q.headers
+  }).result();
 }
 var settlementEventAbi = parseAbi([
-  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"
+  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uiny256 thresholdMin)"
 ]);
-var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uint256)";
+var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uiny256)";
 var SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
 function requireString(label, v) {
   if (typeof v !== "string" || v.length === 0)
@@ -17156,40 +16967,25 @@ function requireAddress(label, addr) {
   if (!addr.startsWith("0x") || addr.length !== 42)
     throw new Error(`${label} must be 0x + 40 hex chars`);
 }
-function runMockRequests(runtime2, flightId, departTs) {
-  const profile = runtime2.config.mockProfile ?? "default";
-  runtime2.log(`Using MOCK providers only (profile=${profile})`);
-  const ctx = { flightId, departTs, mockProfile: profile };
-  return [
-    { provider: "MockAirOne", resp: mockAirOne(ctx) },
-    { provider: "MockSkyTwo", resp: mockSkyTwo(ctx) }
-  ];
-}
-function runSchipholRequest(runtime2, flightId, departTs) {
-  const baseUrl2 = runtime2.config.schipholBaseUrl ?? "https://api.schiphol.nl/public-flights";
-  const resourceVersion = runtime2.config.schipholResourceVersion ?? "v4";
-  const windowSeconds = Number(runtime2.config.schipholWindowSeconds ?? "43200");
+function fetchSchiphol(runtime2, schipholId) {
   const appId = runtime2.getSecret({ id: "SCHIPHOL_APP_ID" }).result().value;
   const appKey = runtime2.getSecret({ id: "SCHIPHOL_APP_KEY" }).result().value;
   if (!appId || !appKey)
     throw new Error("Missing Schiphol secrets: SCHIPHOL_APP_ID / SCHIPHOL_APP_KEY");
   const headers = {
     accept: "application/json",
-    ResourceVersion: resourceVersion,
+    ResourceVersion: runtime2.config.schipholResourceVersion,
     app_id: appId,
     app_key: appKey
   };
-  const resp = fetchSchipholFlight(runtime2, {
+  return fetchSchipholById(runtime2, {
     headers,
-    flightId,
-    departTs,
+    id: schipholId,
     cfg: {
-      schipholBaseUrl: baseUrl2,
-      schipholResourceVersion: resourceVersion,
-      schipholWindowSeconds: windowSeconds
+      baseUrl: runtime2.config.schipholBaseUrl,
+      resourceVersion: runtime2.config.schipholResourceVersion
     }
   });
-  return [{ provider: "Schiphol", resp }];
 }
 var onSettlementRequested = (runtime2, log) => {
   const topics = log.topics.map((t) => bytesToHex(t));
@@ -17197,52 +16993,50 @@ var onSettlementRequested = (runtime2, log) => {
   const topic0 = topics[0]?.toLowerCase();
   const expected = SETTLEMENT_EVENT_HASH.toLowerCase();
   if (topic0 !== expected) {
-    throw new Error(`Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}. ` + `Use the requestSettlement tx hash and pick the correct log index.`);
+    throw new Error(`Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}. ` + `Use the requestSettlement tx hash and correct log index.`);
   }
   const decoded = decodeEventLog({ abi: settlementEventAbi, data, topics });
   const { marketId, flightId, departTs, thresholdMin } = decoded.args;
   runtime2.log(`SettlementRequested detected`);
-  runtime2.log(`  marketId      = ${marketId.toString()}`);
-  runtime2.log(`  flightId      = ${flightId}`);
-  runtime2.log(`  departTs      = ${departTs.toString()}`);
-  runtime2.log(`  thresholdMin  = ${thresholdMin.toString()}`);
-  let results = [];
-  if (runtime2.config.dataMode === "mock") {
-    results = runMockRequests(runtime2, flightId, Number(departTs));
-  } else if (runtime2.config.dataMode === "live") {
-    results = runSchipholRequest(runtime2, flightId, Number(departTs));
-  } else {
-    throw new Error(`dataMode=${runtime2.config.dataMode} not implemented yet`);
-  }
-  const sources = results.map(({ provider, resp }) => {
+  runtime2.log(`  marketId     = ${marketId.toString()}`);
+  runtime2.log(`  flightId     = ${flightId} (expected Schiphol id)`);
+  runtime2.log(`  departTs     = ${departTs.toString()}`);
+  runtime2.log(`  thresholdMin = ${thresholdMin.toString()}`);
+  const resp = fetchSchiphol(runtime2, flightId);
+  const source = (() => {
     try {
-      const normalized = normalize(provider, flightId, resp);
-      return makeEvidenceSource(provider, resp.statusCode, resp.rawJsonString, normalized);
+      const normalized = normalize("SchipholById", flightId, resp);
+      return makeEvidenceSource("SchipholById", resp.statusCode, resp.rawJsonString, normalized);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      return makeEvidenceSource(provider, resp.statusCode, resp.rawJsonString, undefined, msg);
+      return makeEvidenceSource("SchipholById", resp.statusCode, resp.rawJsonString, undefined, msg);
     }
-  });
+  })();
+  if (!source.ok || !source.normalized) {
+    throw new Error(`SchipholById normalization failed: ${source.error ?? "unknown_error"}`);
+  }
   const generatedAtTs = Math.floor(Date.now() / 1000);
-  const { canonicalJson, evidenceHash, pack } = buildEvidencePack({
+  const { pack, canonicalJson, evidenceHash } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.4.1-schiphol-by-id",
-    dataMode: runtime2.config.dataMode,
-    mockProfile: runtime2.config.mockProfile,
+    workflowVersion: "0.5.0-schiphol-id-only",
     generatedAtTs,
     marketId: marketId.toString(),
-    flightId,
+    schipholFlightId: flightId,
     departTs: departTs.toString(),
     thresholdMin: thresholdMin.toString(),
-    sources
+    source
   });
   runtime2.log(`EvidenceHash: ${evidenceHash}`);
   runtime2.log(`EvidencePack (canonical JSON):`);
   runtime2.log(canonicalJson);
-  const delayMinutes = pack.resolution.consensusDelayMinutes;
-  const delayed = pack.resolution.delayed;
-  runtime2.log(`Consensus delayMinutes=${delayMinutes} => delayed=${delayed}`);
-  const reportPayloadHex = encodeAbiParameters(parseAbiParameters("uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash"), [marketId, delayed, BigInt(delayMinutes), evidenceHash]);
+  const delayMinutes = pack.computed.delayMinutes;
+  const cancelled = pack.computed.cancelled;
+  const diverted = pack.computed.diverted;
+  const status = pack.computed.status;
+  const settledAsDisruption = pack.computed.settledAsDisruption;
+  runtime2.log(`Computed: status=${status} delayMinutes=${delayMinutes} cancelled=${cancelled} diverted=${diverted}`);
+  runtime2.log(`Onchain outcome (bool) settledAsDisruption=${settledAsDisruption}`);
+  const reportPayloadHex = encodeAbiParameters(parseAbiParameters("uint256 marketId, bool delayed, uiny256 delayMinutes, bytes32 evidenceHash"), [marketId, settledAsDisruption, BigInt(delayMinutes), evidenceHash]);
   const reportPayloadB64 = hexToBase64(reportPayloadHex);
   const reportResponse = runtime2.report({
     encodedPayload: reportPayloadB64,
@@ -17274,11 +17068,13 @@ var onSettlementRequested = (runtime2, log) => {
     runtime2.log(`ErrorMessage=${errorMessage}`);
   return {
     marketId: marketId.toString(),
-    flightId,
+    schipholFlightId: flightId,
     departTs: departTs.toString(),
     thresholdMin: thresholdMin.toString(),
     delayMinutes,
-    delayed,
+    cancelled,
+    diverted,
+    status,
     evidenceHash,
     evidenceCanonicalJson: canonicalJson,
     reportPayloadHex,
@@ -17296,6 +17092,8 @@ var initWorkflow = (raw) => {
   const receiverAddress = requireString("receiverAddress", raw.receiverAddress);
   requireAddress("marketAddress", marketAddress);
   requireAddress("receiverAddress", receiverAddress);
+  raw.schipholBaseUrl = requireString("schipholBaseUrl", raw.schipholBaseUrl);
+  raw.schipholResourceVersion = requireString("schipholResourceVersion", raw.schipholResourceVersion);
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName,

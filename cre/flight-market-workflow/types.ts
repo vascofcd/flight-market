@@ -5,10 +5,18 @@ export type FlightAPIResponse = {
 
 export type NormalizedFlightStatus = {
   provider: string;
-  flightId: string;
-  scheduledDepartureTs: number; // unix seconds
-  actualDepartureTs: number; // unix seconds
-  delayMinutes: number; // >= 0
+  schipholId: string;
+  flightName: string;
+  flightDirection: "A" | "D" | "?";
+  flightStates: string[];
+
+  scheduledTs: number;
+  actualOrEstimatedTs: number;
+  usedTimeField: string;
+
+  delayMinutes: number;
+  cancelled: boolean;
+  diverted: boolean;
 };
 
 export type EvidenceSource = {
@@ -24,28 +32,33 @@ export type EvidenceSource = {
 };
 
 export type EvidencePack = {
-  schema: "flight.market.evidence.v1";
+  schema: "flight.market.evidence.v2";
   workflow: {
     name: string;
     version: string;
-    dataMode: "mock" | "live";
-    mockProfile?: string;
+    dataMode: "schiphol_by_id";
     generatedAtTs: number;
   };
   market: {
     marketId: string;
-    flightId: string;
+    schipholFlightId: string;
     departTs: string;
     thresholdMin: string;
   };
-  resolution: {
-    metric: "schedule_to_actual_minutes";
-    method: "median_of_sources";
-    sourcesUsed: string[];
-    delays: Record<string, number>;
-    consensusDelayMinutes: number;
+  computed: {
+    cancelled: boolean;
+    diverted: boolean;
+    delayMinutes: number;
     thresholdMin: number;
-    delayed: boolean;
+    status: "CANCELLED" | "DIVERTED" | "DELAYED" | "ON_TIME";
+    settledAsDisruption: boolean;
+  };
+  schiphol: {
+    flightDirection: "A" | "D" | "?";
+    flightStates: string[];
+    usedTimeField: string;
+    scheduledIso: string;
+    actualOrEstimatedIso: string;
   };
   sources: EvidenceSource[];
 };

@@ -2,23 +2,18 @@ import type {
   EvidencePack,
   EvidenceSource,
   NormalizedFlightStatus,
-} from "./types";
-import { canonicalStringify, sha3HexString } from "./utils";
-import { medianConsensus } from "./consensus";
+} from "./types.js";
+import { canonicalStringify, sha3HexString } from "./utils.js";
 
 export type EvidenceInputs = {
   workflowName: string;
   workflowVersion: string;
-  dataMode: "mock" | "live";
-  mockProfile?: string;
   generatedAtTs: number;
-
   marketId: string;
-  flightId: string;
+  schipholFlightId: string;
   departTs: string;
   thresholdMin: string;
-
-  sources: EvidenceSource[];
+  source: EvidenceSource;
 };
 
 export function buildEvidencePack(inputs: EvidenceInputs): {
@@ -26,51 +21,67 @@ export function buildEvidencePack(inputs: EvidenceInputs): {
   canonicalJson: string;
   evidenceHash: `0x${string}`;
 } {
-  const threshold = Number(inputs.thresholdMin);
-
-  const okSources = inputs.sources.filter((s) => s.ok && s.normalized);
-  const delays: Record<string, number> = {};
-  const used: string[] = [];
-
-  for (const s of okSources) {
-    const d = (s.normalized as NormalizedFlightStatus).delayMinutes;
-    delays[s.provider] = d;
-    used.push(s.provider);
+  if (!inputs.source.normalized) {
+    throw new Error("Cannot build evidence pack: source not normalized");
   }
 
-  const consensusDelayMinutes = medianConsensus(Object.values(delays));
-  const delayed = consensusDelayMinutes >= threshold;
+  const n = inputs.source.normalized as NormalizedFlightStatus;
+  const threshold = Number(inputs.thresholdMin);
+
+  const cancelled = n.cancelled;
+  const diverted = n.diverted;
+  const delayMinutes = n.delayMinutes;
+
+  const status: EvidencePack["computed"]["status"] = cancelled
+    ? "CANCELLED"
+    : diverted
+      ? "DIVERTED"
+      : delayMinutes >= threshold
+        ? "DELAYED"
+        : "ON_TIME";
+
+  const settledAsDisruption =
+    cancelled || diverted || delayMinutes >= threshold;
+
+  const scheduledIso = new Date(n.scheduledTs * 1000).toISOString();
+  const actualIso = n.actualOrEstimatedTs
+    ? new Date(n.actualOrEstimatedTs * 1000).toISOString()
+    : "";
 
   const pack: EvidencePack = {
-    schema: "flight.market.evidence.v1",
+    schema: "flight.market.evidence.v2",
     workflow: {
       name: inputs.workflowName,
       version: inputs.workflowVersion,
-      dataMode: inputs.dataMode,
-      mockProfile: inputs.mockProfile,
+      dataMode: "schiphol_by_id",
       generatedAtTs: inputs.generatedAtTs,
     },
     market: {
       marketId: inputs.marketId,
-      flightId: inputs.flightId,
+      schipholFlightId: inputs.schipholFlightId,
       departTs: inputs.departTs,
       thresholdMin: inputs.thresholdMin,
     },
-    resolution: {
-      metric: "schedule_to_actual_minutes",
-      method: "median_of_sources",
-      sourcesUsed: used,
-      delays,
-      consensusDelayMinutes,
+    computed: {
+      cancelled,
+      diverted,
+      delayMinutes,
       thresholdMin: threshold,
-      delayed,
+      status,
+      settledAsDisruption,
     },
-    sources: inputs.sources,
+    schiphol: {
+      flightDirection: n.flightDirection,
+      flightStates: n.flightStates,
+      usedTimeField: n.usedTimeField,
+      scheduledIso,
+      actualOrEstimatedIso: actualIso,
+    },
+    sources: [inputs.source],
   };
 
   const canonicalJson = canonicalStringify(pack);
   const evidenceHash = sha3HexString(canonicalJson);
-
   return { pack, canonicalJson, evidenceHash };
 }
 

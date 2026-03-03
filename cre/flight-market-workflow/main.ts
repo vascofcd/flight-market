@@ -20,33 +20,23 @@ import {
 import type { FlightAPIResponse } from "./types.js";
 import { normalize } from "./normalize.js";
 import { buildEvidencePack, makeEvidenceSource } from "./evidence.js";
-import { fetchSchipholFlight } from "./providers/schiphol.js";
-import { mockAirOne, mockSkyTwo } from "./providers/mockProviders.js";
+import { fetchSchipholById } from "./providers/schipholById.js";
 
 type Config = {
   chainSelectorName: string;
   marketAddress: string;
   receiverAddress: string;
   gasLimit: string;
-
-  dataMode: "mock" | "schiphol" | "live";
-
-  // mock
-  mockProfile?: string;
-
-  // schiphol
-  schipholBaseUrl?: string;
-  schipholResourceVersion?: string;
-  schipholWindowSeconds?: string;
+  schipholBaseUrl: string; 
+  schipholResourceVersion: string;
 };
 
-// event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin);
 const settlementEventAbi = parseAbi([
-  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)",
+  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uiny256 thresholdMin)",
 ]);
 
 const SETTLEMENT_EVENT_SIG =
-  "SettlementRequested(uint256,string,uint256,uint256)";
+  "SettlementRequested(uint256,string,uint256,uiny256)";
 const SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
 
 function requireString(label: string, v: unknown): string {
@@ -59,19 +49,25 @@ function requireAddress(label: string, addr: string) {
     throw new Error(`${label} must be 0x + 40 hex chars`);
 }
 
-type SettlementPreview = {
+type SettlementResult = {
   marketId: string;
-  flightId: string;
+  schipholFlightId: string;
   departTs: string;
   thresholdMin: string;
+
   delayMinutes: number;
-  delayed: boolean;
+  cancelled: boolean;
+  diverted: boolean;
+  status: string;
+
   evidenceHash: `0x${string}`;
   evidenceCanonicalJson: string;
-  reportPayloadHex: `0x${string}`;
-  reportPayloadB64: `0x${string}` | string;
 
-  // ALWAYS defined (no undefined/null)
+  // report payload
+  reportPayloadHex: `0x${string}`;
+  reportPayloadB64: string;
+
+  // ALWAYS defined
   writeTxHashHex: `0x${string}`;
   writeTxStatus: string;
   receiverExecutionStatus: string;
@@ -79,30 +75,10 @@ type SettlementPreview = {
   errorMessage: string;
 };
 
-function runMockRequests(
+function fetchSchiphol(
   runtime: Runtime<Config>,
-  flightId: string,
-  departTs: number,
-): Array<{ provider: string; resp: FlightAPIResponse }> {
-  const profile = runtime.config.mockProfile ?? "default";
-  runtime.log(`Using MOCK providers only (profile=${profile})`);
-  const ctx = { flightId, departTs, mockProfile: profile };
-  return [
-    { provider: "MockAirOne", resp: mockAirOne(ctx) },
-    { provider: "MockSkyTwo", resp: mockSkyTwo(ctx) },
-  ];
-}
-
-function runSchipholRequest(
-  runtime: Runtime<Config>,
-  flightId: string,
-  departTs: number,
-): Array<{ provider: string; resp: FlightAPIResponse }> {
-  const baseUrl =
-    runtime.config.schipholBaseUrl ?? "https://api.schiphol.nl/public-flights";
-  const resourceVersion = runtime.config.schipholResourceVersion ?? "v4";
-  const windowSeconds = Number(runtime.config.schipholWindowSeconds ?? "43200");
-
+  schipholId: string,
+): FlightAPIResponse {
   const appId = runtime.getSecret({ id: "SCHIPHOL_APP_ID" }).result().value;
   const appKey = runtime.getSecret({ id: "SCHIPHOL_APP_KEY" }).result().value;
   if (!appId || !appKey)
@@ -112,43 +88,38 @@ function runSchipholRequest(
 
   const headers: Record<string, string> = {
     accept: "application/json",
-    ResourceVersion: resourceVersion,
+    ResourceVersion: runtime.config.schipholResourceVersion,
     app_id: appId,
     app_key: appKey,
   };
 
-  // Provider handles lookup (if needed) and then always calls /flights/{id}
-  const resp = fetchSchipholFlight(runtime, {
+  return fetchSchipholById(runtime, {
     headers,
-    flightId,
-    departTs,
+    id: schipholId,
     cfg: {
-      schipholBaseUrl: baseUrl,
-      schipholResourceVersion: resourceVersion,
-      schipholWindowSeconds: windowSeconds,
+      baseUrl: runtime.config.schipholBaseUrl,
+      resourceVersion: runtime.config.schipholResourceVersion,
     },
   });
-
-  return [{ provider: "Schiphol", resp }];
 }
 
 const onSettlementRequested = (
   runtime: Runtime<Config>,
   log: EVMLog,
-): SettlementPreview => {
+): SettlementResult => {
   const topics = log.topics.map((t) => bytesToHex(t)) as [
     `0x${string}`,
     ...`0x${string}`[],
   ];
   const data = bytesToHex(log.data);
 
-  // Guard against selecting the wrong log index
+  // Guard wrong log index
   const topic0 = topics[0]?.toLowerCase();
   const expected = SETTLEMENT_EVENT_HASH.toLowerCase();
   if (topic0 !== expected) {
     throw new Error(
       `Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}. ` +
-        `Use the requestSettlement tx hash and pick the correct log index.`,
+        `Use the requestSettlement tx hash and correct log index.`,
     );
   }
 
@@ -156,33 +127,26 @@ const onSettlementRequested = (
   const { marketId, flightId, departTs, thresholdMin } =
     decoded.args as unknown as {
       marketId: bigint;
-      flightId: string;
+      flightId: string; // WE EXPECT THIS TO BE THE SCHIPHOL ID
       departTs: bigint;
       thresholdMin: bigint;
     };
 
   runtime.log(`SettlementRequested detected`);
-  runtime.log(`  marketId      = ${marketId.toString()}`);
-  runtime.log(`  flightId      = ${flightId}`);
-  runtime.log(`  departTs      = ${departTs.toString()}`);
-  runtime.log(`  thresholdMin  = ${thresholdMin.toString()}`);
+  runtime.log(`  marketId     = ${marketId.toString()}`);
+  runtime.log(`  flightId     = ${flightId} (expected Schiphol id)`);
+  runtime.log(`  departTs     = ${departTs.toString()}`);
+  runtime.log(`  thresholdMin = ${thresholdMin.toString()}`);
 
-  // 1) Fetch data
-  let results: Array<{ provider: string; resp: FlightAPIResponse }> = [];
-  if (runtime.config.dataMode === "mock") {
-    results = runMockRequests(runtime, flightId, Number(departTs));
-  } else if (runtime.config.dataMode === "live") {
-    results = runSchipholRequest(runtime, flightId, Number(departTs));
-  } else {
-    throw new Error(`dataMode=${runtime.config.dataMode} not implemented yet`);
-  }
+  // 1) Fetch ONLY /flights/{id}
+  const resp = fetchSchiphol(runtime, flightId);
 
-  // 2) Normalize + evidence sources
-  const sources = results.map(({ provider, resp }) => {
+  // 2) Normalize (delay + CNX/DIV)
+  const source = (() => {
     try {
-      const normalized = normalize(provider, flightId, resp);
+      const normalized = normalize("SchipholById", flightId, resp);
       return makeEvidenceSource(
-        provider,
+        "SchipholById",
         resp.statusCode,
         resp.rawJsonString,
         normalized,
@@ -190,50 +154,68 @@ const onSettlementRequested = (
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return makeEvidenceSource(
-        provider,
+        "SchipholById",
         resp.statusCode,
         resp.rawJsonString,
         undefined,
         msg,
       );
     }
-  });
+  })();
 
-  // 3) Evidence + hash
+  if (!source.ok || !source.normalized) {
+    // Fail loudly so we don't settle with unknown data
+    throw new Error(
+      `SchipholById normalization failed: ${source.error ?? "unknown_error"}`,
+    );
+  }
+
+  // 3) Build evidence + hash
   const generatedAtTs = Math.floor(Date.now() / 1000);
-  const { canonicalJson, evidenceHash, pack } = buildEvidencePack({
+  const { pack, canonicalJson, evidenceHash } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.4.1-schiphol-by-id",
-    dataMode: runtime.config.dataMode,
-    mockProfile: runtime.config.mockProfile,
+    workflowVersion: "0.5.0-schiphol-id-only",
     generatedAtTs,
 
     marketId: marketId.toString(),
-    flightId,
+    schipholFlightId: flightId,
     departTs: departTs.toString(),
     thresholdMin: thresholdMin.toString(),
 
-    sources,
+    source,
   });
 
   runtime.log(`EvidenceHash: ${evidenceHash}`);
   runtime.log(`EvidencePack (canonical JSON):`);
   runtime.log(canonicalJson);
 
-  const delayMinutes = pack.resolution.consensusDelayMinutes;
-  const delayed = pack.resolution.delayed;
-  runtime.log(`Consensus delayMinutes=${delayMinutes} => delayed=${delayed}`);
+  // 4) Decide what we settle ONCHAIN
+  // We map to a single bool (contract expects bool delayed).
+  // Here: "YES" means disruption (cancelled OR diverted OR delay >= threshold).
+  const delayMinutes = pack.computed.delayMinutes;
+  const cancelled = pack.computed.cancelled;
+  const diverted = pack.computed.diverted;
+  const status = pack.computed.status;
+  const settledAsDisruption = pack.computed.settledAsDisruption;
 
-  // 4) Report payload
+  runtime.log(
+    `Computed: status=${status} delayMinutes=${delayMinutes} cancelled=${cancelled} diverted=${diverted}`,
+  );
+  runtime.log(
+    `Onchain outcome (bool) settledAsDisruption=${settledAsDisruption}`,
+  );
+
+  // 5) Report payload matches FlightMarket.onReport ABI:
+  // (uint256 marketId, bool delayed, uiny256 delayMinutes, bytes32 evidenceHash)
   const reportPayloadHex = encodeAbiParameters(
     parseAbiParameters(
-      "uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash",
+      "uint256 marketId, bool delayed, uiny256 delayMinutes, bytes32 evidenceHash",
     ),
-    [marketId, delayed, BigInt(delayMinutes), evidenceHash],
+    [marketId, settledAsDisruption, BigInt(delayMinutes), evidenceHash],
   );
   const reportPayloadB64 = hexToBase64(reportPayloadHex);
 
-  // 5) Signed report
+  // 6) Signed report
   const reportResponse = runtime
     .report({
       encodedPayload: reportPayloadB64,
@@ -243,7 +225,7 @@ const onSettlementRequested = (
     })
     .result();
 
-  // 6) Onchain write (dry-run unless --broadcast)
+  // 7) Onchain write (dry-run unless simulate --broadcast)
   const network = getNetwork({
     chainFamily: "evm",
     chainSelectorName: runtime.config.chainSelectorName,
@@ -282,15 +264,21 @@ const onSettlementRequested = (
 
   return {
     marketId: marketId.toString(),
-    flightId,
+    schipholFlightId: flightId,
     departTs: departTs.toString(),
     thresholdMin: thresholdMin.toString(),
+
     delayMinutes,
-    delayed,
+    cancelled,
+    diverted,
+    status,
+
     evidenceHash,
     evidenceCanonicalJson: canonicalJson,
+
     reportPayloadHex,
     reportPayloadB64,
+
     writeTxHashHex: txHashHex,
     writeTxStatus,
     receiverExecutionStatus,
@@ -306,9 +294,15 @@ const initWorkflow = (raw: Config) => {
   );
   const marketAddress = requireString("marketAddress", raw.marketAddress);
   const receiverAddress = requireString("receiverAddress", raw.receiverAddress);
-
   requireAddress("marketAddress", marketAddress);
   requireAddress("receiverAddress", receiverAddress);
+
+  // required schiphol config
+  raw.schipholBaseUrl = requireString("schipholBaseUrl", raw.schipholBaseUrl);
+  raw.schipholResourceVersion = requireString(
+    "schipholResourceVersion",
+    raw.schipholResourceVersion,
+  );
 
   const network = getNetwork({
     chainFamily: "evm",
@@ -316,7 +310,6 @@ const initWorkflow = (raw: Config) => {
     isTestnet: true,
   });
   if (!network) throw new Error(`Network not found: ${chainSelectorName}`);
-
   const evmClient = new EVMClient(network.chainSelector.selector);
 
   return [
