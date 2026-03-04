@@ -4,61 +4,71 @@ export type FlightAPIResponse = {
 };
 
 export type NormalizedFlightStatus = {
-  provider: string;
-  schipholId: string;
-  flightName: string;
-  flightDirection: "A" | "D" | "?";
-  flightStates: string[];
+  provider: "AirLabsFlight";
+  flightId: string; // market flightId, expected to be flight_iata (e.g. "AA6")
 
-  scheduledTs: number;
-  actualOrEstimatedTs: number;
-  usedTimeField: string;
+  apiFlightIata: string;
+  apiCsFlightIata: string;
 
+  depTimeTs: number; // scheduled departure (unix seconds)
+  arrTimeTs: number; // scheduled arrival (unix seconds)
+
+  delayMetric: "dep" | "arr" | "any";
+  delayFieldUsed: "dep_delayed" | "arr_delayed" | "delayed" | "none";
   delayMinutes: number;
+
+  status: string;
   cancelled: boolean;
   diverted: boolean;
+
+  // sanity check
+  withinWindow: boolean;
+  departTsDiffSeconds: number;
 };
 
 export type EvidenceSource = {
   provider: string;
   statusCode: number;
   ok: boolean;
+  query: {
+    flight_iata: string;
+  };
   raw: {
     sha3: `0x${string}`;
-    json: string;
+    jsonPreview: string;
+    jsonLength: number;
   };
   normalized?: NormalizedFlightStatus;
   error?: string;
 };
 
 export type EvidencePack = {
-  schema: "flight.market.evidence.v2";
+  schema: "flight.market.evidence.v4";
   workflow: {
     name: string;
     version: string;
-    dataMode: "schiphol_by_id";
+    dataMode: "airlabs_flight";
     generatedAtTs: number;
   };
   market: {
     marketId: string;
-    schipholFlightId: string;
+    flightId: string;
     departTs: string;
     thresholdMin: string;
   };
+  selection: {
+    matchWindowSeconds: number;
+    delayMetric: "dep" | "arr" | "any";
+  };
   computed: {
-    cancelled: boolean;
-    diverted: boolean;
     delayMinutes: number;
     thresholdMin: number;
-    status: "CANCELLED" | "DIVERTED" | "DELAYED" | "ON_TIME";
+    cancelled: boolean;
+    diverted: boolean;
+    status: string;
+
+    // "YES" = disruption (cancelled OR diverted OR delay>=threshold)
     settledAsDisruption: boolean;
-  };
-  schiphol: {
-    flightDirection: "A" | "D" | "?";
-    flightStates: string[];
-    usedTimeField: string;
-    scheduledIso: string;
-    actualOrEstimatedIso: string;
   };
   sources: EvidenceSource[];
 };

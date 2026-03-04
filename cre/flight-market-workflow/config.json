@@ -3,6 +3,8 @@
   "marketAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
   "receiverAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
   "gasLimit": "1000000",
-  "schipholBaseUrl": "https://api.schiphol.nl/public-flights",
-  "schipholResourceVersion": "v4"
+
+  "airlabsBaseUrl": "https://airlabs.co/api/v9",
+  "airlabsDelayMetric": "dep",
+  "matchWindowSeconds": "43200"
 }

@@ -1,129 +1,156 @@
-import type { FlightAPIResponse, NormalizedFlightStatus } from "./types.js";
-import { clampNonNegative } from "./utils.js";
+import type { FlightAPIResponse, NormalizedFlightStatus } from "../types.js"
 
-type SchipholPublicFlightState = {
-  flightStates?: string[];
-};
-
-type SchipholFlight = {
-  id?: string;
-  flightName?: string;
-  mainFlight?: string;
-  flightDirection?: "A" | "D";
-  scheduleDateTime?: string;
-  actualLandingTime?: string;
-  estimatedLandingTime?: string;
-  actualOffBlockTime?: string;
-  publicEstimatedOffBlockTime?: string;
-
-  publicFlightState?: SchipholPublicFlightState;
-};
-
-function pickActualOrEstimated(f: SchipholFlight): {
-  iso: string;
-  field: string;
-} {
-  const dir = f.flightDirection ?? "?";
-
-  if (dir === "A") {
-    if (f.actualLandingTime)
-      return { iso: f.actualLandingTime, field: "actualLandingTime" };
-    if (f.estimatedLandingTime)
-      return { iso: f.estimatedLandingTime, field: "estimatedLandingTime" };
+type AirlabsError = {
+  error?: {
+    code?: string
+    message?: string
   }
-
-  if (dir === "D") {
-    if (f.actualOffBlockTime)
-      return { iso: f.actualOffBlockTime, field: "actualOffBlockTime" };
-    if (f.publicEstimatedOffBlockTime)
-      return {
-        iso: f.publicEstimatedOffBlockTime,
-        field: "publicEstimatedOffBlockTime",
-      };
-  }
-
-  if (f.actualLandingTime)
-    return { iso: f.actualLandingTime, field: "actualLandingTime" };
-  if (f.estimatedLandingTime)
-    return { iso: f.estimatedLandingTime, field: "estimatedLandingTime" };
-  if (f.actualOffBlockTime)
-    return { iso: f.actualOffBlockTime, field: "actualOffBlockTime" };
-  if (f.publicEstimatedOffBlockTime)
-    return {
-      iso: f.publicEstimatedOffBlockTime,
-      field: "publicEstimatedOffBlockTime",
-    };
-
-  throw new Error(
-    "No usable actual/estimated time field found (flight not ready)",
-  );
+  // sometimes APIs include extra fields like request, terms, etc
+  [k: string]: unknown
 }
 
-export function normalize(
-  provider: string,
-  marketFlightId: string,
-  resp: FlightAPIResponse,
-): NormalizedFlightStatus {
-  if (provider !== "SchipholById") {
-    throw new Error(`No normalizer implemented for provider=${provider}`);
+type AirlabsFlight = {
+  flight_iata?: string
+  cs_flight_iata?: string
+  dep_time_ts?: number
+  arr_time_ts?: number
+  delayed?: number | null
+  dep_delayed?: number | null
+  arr_delayed?: number | null
+  status?: string | null
+  // allow unknown keys
+  [k: string]: unknown
+}
+
+function isObj(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null
+}
+
+function numOrNull(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null
+}
+
+function toUpper(v: unknown): string {
+  return typeof v === "string" ? v.toUpperCase() : ""
+}
+
+function statusFlags(statusRaw: string): { cancelled: boolean; diverted: boolean; status: string } {
+  const s = (statusRaw || "UNKNOWN").toString().toLowerCase()
+  const cancelled = s.includes("cancel")
+  const diverted = s.includes("divert")
+  return { cancelled, diverted, status: s.toUpperCase() }
+}
+
+function pickDelayMinutes(
+  metric: "dep" | "arr" | "any",
+  dep: number | null,
+  arr: number | null,
+  any: number | null
+): { minutes: number; field: NormalizedFlightStatus["delayFieldUsed"] } {
+  const pick = (x: number | null, field: NormalizedFlightStatus["delayFieldUsed"]) =>
+    x !== null ? { minutes: Math.max(0, Math.floor(x)), field } : null
+
+  if (metric === "dep") {
+    return (
+      pick(dep, "dep_delayed") ??
+      pick(any, "delayed") ??
+      pick(arr, "arr_delayed") ?? { minutes: 0, field: "none" }
+    )
+  }
+  if (metric === "arr") {
+    return (
+      pick(arr, "arr_delayed") ??
+      pick(any, "delayed") ??
+      pick(dep, "dep_delayed") ?? { minutes: 0, field: "none" }
+    )
+  }
+  return (
+    pick(any, "delayed") ??
+    pick(dep, "dep_delayed") ??
+    pick(arr, "arr_delayed") ?? { minutes: 0, field: "none" }
+  )
+}
+
+function extractFlightObject(parsed: unknown): AirlabsFlight {
+  // AirLabs /flight docs show a raw flight object, but on errors they return {"error":{...}}
+  // Some gateways/wrappers may put it under `response`.
+  if (!isObj(parsed)) throw new Error("AirLabs response is not an object")
+
+  // If error format, throw a clean error
+  const maybeErr = parsed as AirlabsError
+  if (maybeErr.error && isObj(maybeErr.error)) {
+    const code = String(maybeErr.error.code ?? "unknown")
+    const message = String(maybeErr.error.message ?? "Unknown error")
+    throw new Error(`AirLabs API error (${code}): ${message}`)
   }
 
-  const rawObj = JSON.parse(resp.rawJsonString) as any;
-  const f: SchipholFlight = rawObj?.flight ?? rawObj;
+  // Wrapper support: { response: { ...flight... } }
+  const resp = (parsed as any).response
+  if (isObj(resp)) return resp as AirlabsFlight
 
-  const states = (f.publicFlightState?.flightStates ?? []).filter(
-    (x) => typeof x === "string",
-  );
-  const cancelled = states.includes("CNX");
-  const diverted = states.includes("DIV");
+  // Otherwise treat as flight
+  return parsed as AirlabsFlight
+}
 
-  if (!f.scheduleDateTime) throw new Error("Missing scheduleDateTime");
-  const scheduledMs = Date.parse(f.scheduleDateTime);
-  if (!Number.isFinite(scheduledMs))
-    throw new Error("Invalid scheduleDateTime");
+export function normalizeAirlabsFlight(args: {
+  flightId: string
+  departTs: number
+  matchWindowSeconds: number
+  delayMetric: "dep" | "arr" | "any"
+  resp: FlightAPIResponse
+}): NormalizedFlightStatus {
+  const parsed = JSON.parse(args.resp.rawJsonString) as unknown
+  const obj = extractFlightObject(parsed)
 
-  let actualIso = "";
-  let usedField = "";
-  let actualMs = NaN;
+  const apiFlightIata = toUpper(obj.flight_iata)
+  const apiCsFlightIata = toUpper(obj.cs_flight_iata)
+  const want = args.flightId.toUpperCase()
 
-  try {
-    const pick = pickActualOrEstimated(f);
-    actualIso = pick.iso;
-    usedField = pick.field;
-    actualMs = Date.parse(actualIso);
-  } catch {
-    if (!cancelled && !diverted) {
-      throw new Error(
-        "Flight not ready: missing actual/estimated time and not CNX/DIV",
-      );
-    }
+  // If flight_iata is missing but there's no error object, show keys for debugging
+  if (!apiFlightIata && !apiCsFlightIata) {
+    const keys = isObj(obj) ? Object.keys(obj).slice(0, 25).join(",") : ""
+    throw new Error(`AirLabs /flight response missing flight identifiers (flight_iata/cs_flight_iata). keys=${keys}`)
   }
 
-  const delay = Number.isFinite(actualMs)
-    ? clampNonNegative(Math.floor((actualMs - scheduledMs) / 60000))
-    : 0;
+  // Verify the returned flight matches the requested one
+  if (apiFlightIata !== want && apiCsFlightIata !== want) {
+    throw new Error(
+      `AirLabs /flight returned a different flight. want=${want} got=${apiFlightIata} cs=${apiCsFlightIata}`
+    )
+  }
+
+  const depTimeTs = typeof obj.dep_time_ts === "number" ? obj.dep_time_ts : 0
+  const arrTimeTs = typeof obj.arr_time_ts === "number" ? obj.arr_time_ts : 0
+
+  const diffSeconds = depTimeTs ? Math.abs(depTimeTs - args.departTs) : Number.POSITIVE_INFINITY
+  const withinWindow = diffSeconds <= args.matchWindowSeconds
+
+  const depDelayed = numOrNull(obj.dep_delayed)
+  const arrDelayed = numOrNull(obj.arr_delayed)
+  const anyDelayed = numOrNull(obj.delayed)
+
+  const picked = pickDelayMinutes(args.delayMetric, depDelayed, arrDelayed, anyDelayed)
+  const flags = statusFlags(String(obj.status ?? ""))
 
   return {
-    provider,
-    schipholId: (f.id ?? marketFlightId) || marketFlightId,
-    flightName: f.flightName ?? f.mainFlight ?? "",
-    flightDirection: f.flightDirection ?? "?",
-    flightStates: states,
+    provider: "AirLabsFlight",
+    flightId: want,
 
-    scheduledTs: Math.floor(scheduledMs / 1000),
-    actualOrEstimatedTs: Number.isFinite(actualMs)
-      ? Math.floor(actualMs / 1000)
-      : 0,
-    usedTimeField:
-      usedField ||
-      (cancelled
-        ? "cancelled_no_time"
-        : diverted
-          ? "diverted_no_time"
-          : "unknown"),
+    apiFlightIata,
+    apiCsFlightIata,
 
-    delayMinutes: delay,
-    cancelled,
-    diverted,
-  };
+    depTimeTs,
+    arrTimeTs,
+
+    delayMetric: args.delayMetric,
+    delayFieldUsed: picked.field,
+    delayMinutes: picked.minutes,
+
+    status: flags.status,
+    cancelled: flags.cancelled,
+    diverted: flags.diverted,
+
+    withinWindow,
+    departTsDiffSeconds: Number.isFinite(diffSeconds) ? diffSeconds : 0,
+  }
 }

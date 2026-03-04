@@ -2,106 +2,94 @@ import type {
   EvidencePack,
   EvidenceSource,
   NormalizedFlightStatus,
-} from "./types.js";
-import { canonicalStringify, sha3HexString } from "./utils.js";
-
-export type EvidenceInputs = {
-  workflowName: string;
-  workflowVersion: string;
-  generatedAtTs: number;
-  marketId: string;
-  schipholFlightId: string;
-  departTs: string;
-  thresholdMin: string;
-  source: EvidenceSource;
-};
-
-export function buildEvidencePack(inputs: EvidenceInputs): {
-  pack: EvidencePack;
-  canonicalJson: string;
-  evidenceHash: `0x${string}`;
-} {
-  if (!inputs.source.normalized) {
-    throw new Error("Cannot build evidence pack: source not normalized");
-  }
-
-  const n = inputs.source.normalized as NormalizedFlightStatus;
-  const threshold = Number(inputs.thresholdMin);
-
-  const cancelled = n.cancelled;
-  const diverted = n.diverted;
-  const delayMinutes = n.delayMinutes;
-
-  const status: EvidencePack["computed"]["status"] = cancelled
-    ? "CANCELLED"
-    : diverted
-      ? "DIVERTED"
-      : delayMinutes >= threshold
-        ? "DELAYED"
-        : "ON_TIME";
-
-  const settledAsDisruption =
-    cancelled || diverted || delayMinutes >= threshold;
-
-  const scheduledIso = new Date(n.scheduledTs * 1000).toISOString();
-  const actualIso = n.actualOrEstimatedTs
-    ? new Date(n.actualOrEstimatedTs * 1000).toISOString()
-    : "";
-
-  const pack: EvidencePack = {
-    schema: "flight.market.evidence.v2",
-    workflow: {
-      name: inputs.workflowName,
-      version: inputs.workflowVersion,
-      dataMode: "schiphol_by_id",
-      generatedAtTs: inputs.generatedAtTs,
-    },
-    market: {
-      marketId: inputs.marketId,
-      schipholFlightId: inputs.schipholFlightId,
-      departTs: inputs.departTs,
-      thresholdMin: inputs.thresholdMin,
-    },
-    computed: {
-      cancelled,
-      diverted,
-      delayMinutes,
-      thresholdMin: threshold,
-      status,
-      settledAsDisruption,
-    },
-    schiphol: {
-      flightDirection: n.flightDirection,
-      flightStates: n.flightStates,
-      usedTimeField: n.usedTimeField,
-      scheduledIso,
-      actualOrEstimatedIso: actualIso,
-    },
-    sources: [inputs.source],
-  };
-
-  const canonicalJson = canonicalStringify(pack);
-  const evidenceHash = sha3HexString(canonicalJson);
-  return { pack, canonicalJson, evidenceHash };
-}
+} from "../types";
+import { canonicalStringify, sha3HexString } from "../utils";
 
 export function makeEvidenceSource(
   provider: string,
   statusCode: number,
   rawJson: string,
+  query: { flight_iata: string },
   normalized?: NormalizedFlightStatus,
   error?: string,
 ): EvidenceSource {
-  const ok = !error && statusCode >= 200 && statusCode < 300 && !!normalized;
+  const previewLen = 2000;
+  const jsonPreview =
+    rawJson.length > previewLen ? rawJson.slice(0, previewLen) : rawJson;
+
+  const ok = !error && statusCode >= 200 && statusCode < 300;
+
   return {
     provider,
     statusCode,
     ok,
+    query,
     raw: {
       sha3: sha3HexString(rawJson),
-      json: rawJson,
+      jsonPreview,
+      jsonLength: rawJson.length,
     },
     normalized,
     error,
   };
+}
+
+export function buildEvidencePack(inputs: {
+  workflowName: string;
+  workflowVersion: string;
+  generatedAtTs: number;
+
+  marketId: string;
+  flightId: string;
+  departTs: string;
+  thresholdMin: string;
+
+  matchWindowSeconds: number;
+  delayMetric: "dep" | "arr" | "any";
+
+  normalized: NormalizedFlightStatus;
+  sources: EvidenceSource[];
+}): { pack: EvidencePack; canonicalJson: string; evidenceHash: `0x${string}` } {
+  const threshold = Number(inputs.thresholdMin);
+
+  const delayMinutes = inputs.normalized.delayMinutes;
+  const cancelled = inputs.normalized.cancelled;
+  const diverted = inputs.normalized.diverted;
+  const status = inputs.normalized.status;
+
+  const settledAsDisruption =
+    cancelled || diverted || delayMinutes >= threshold;
+
+  const pack: EvidencePack = {
+    schema: "flight.market.evidence.v4",
+    workflow: {
+      name: inputs.workflowName,
+      version: inputs.workflowVersion,
+      dataMode: "airlabs_flight",
+      generatedAtTs: inputs.generatedAtTs,
+    },
+    market: {
+      marketId: inputs.marketId,
+      flightId: inputs.flightId,
+      departTs: inputs.departTs,
+      thresholdMin: inputs.thresholdMin,
+    },
+    selection: {
+      matchWindowSeconds: inputs.matchWindowSeconds,
+      delayMetric: inputs.delayMetric,
+    },
+    computed: {
+      delayMinutes,
+      thresholdMin: threshold,
+      cancelled,
+      diverted,
+      status,
+      settledAsDisruption,
+    },
+    sources: inputs.sources,
+  };
+
+  const canonicalJson = canonicalStringify(pack);
+  const evidenceHash = sha3HexString(canonicalJson);
+  return { pack, canonicalJson, evidenceHash };
 }
