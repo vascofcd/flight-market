@@ -33,13 +33,13 @@ type Config = {
   matchWindowSeconds: string;
 };
 
-// event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin);
 const settlementEventAbi = parseAbi([
   "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)",
 ]);
 
 const SETTLEMENT_EVENT_SIG =
   "SettlementRequested(uint256,string,uint256,uint256)";
+
 const SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
 
 function requireString(label: string, v: unknown): string {
@@ -47,6 +47,7 @@ function requireString(label: string, v: unknown): string {
     throw new Error(`Missing/invalid config: ${label}`);
   return v;
 }
+
 function requireAddress(label: string, addr: string) {
   if (!/^0x[0-9a-fA-F]{40}$/.test(addr))
     throw new Error(`${label} must be 0x + 40 hex chars`);
