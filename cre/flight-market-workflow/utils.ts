@@ -36,6 +36,6 @@ export function sha3HexString(s: string): `0x${string}` {
   return keccak256(toBytes(s));
 }
 
-export function clampNonNegative(n: number): number {
-  return n < 0 ? 0 : n;
-}
+// export function clampNonNegative(n: number): number {
+//   return n < 0 ? 0 : n;
+// }

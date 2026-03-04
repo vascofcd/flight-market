@@ -16790,28 +16790,31 @@ var fetchFlight = (sendRequester, q) => {
     return { statusCode, rawJsonString: bodyText };
   return { statusCode, rawJsonString: bodyText };
 };
-function fetchAirlabsFlight(runtime2, cfg) {
+function fetchAirLabsFlight(runtime2, cfg) {
   const url = buildUrl(cfg);
   runtime2.log(`AirLabs GET ${url.replace(cfg.apiKey, "***")}`);
   const httpClient = new ClientCapability2;
   return httpClient.sendRequest(runtime2, fetchFlight, consensusIdenticalAggregation())({ url }).result();
 }
-function isObj(x) {
+var settlementEventAbi = parseAbi([
+  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"
+]);
+var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uint256)";
+var SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
+var isObj = (x) => {
   return typeof x === "object" && x !== null;
-}
-function numOrNull(v) {
+};
+var numOrNull = (v) => {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
-function toUpper(v) {
+};
+var toUpper = (v) => {
   return typeof v === "string" ? v.toUpperCase() : "";
-}
-function statusFlags(statusRaw) {
+};
+var statusFlags = (statusRaw) => {
   const s = (statusRaw || "UNKNOWN").toString().toLowerCase();
-  const cancelled = s.includes("cancel");
-  const diverted = s.includes("divert");
-  return { cancelled, diverted, status: s.toUpperCase() };
-}
-function pickDelayMinutes(metric, dep, arr, any) {
+  return { status: s.toUpperCase() };
+};
+var pickDelayMinutes = (metric, dep, arr, any) => {
   const pick = (x, field) => x !== null ? { minutes: Math.max(0, Math.floor(x)), field } : null;
   if (metric === "dep") {
     return pick(dep, "dep_delayed") ?? pick(any, "delayed") ?? pick(arr, "arr_delayed") ?? { minutes: 0, field: "none" };
@@ -16820,8 +16823,8 @@ function pickDelayMinutes(metric, dep, arr, any) {
     return pick(arr, "arr_delayed") ?? pick(any, "delayed") ?? pick(dep, "dep_delayed") ?? { minutes: 0, field: "none" };
   }
   return pick(any, "delayed") ?? pick(dep, "dep_delayed") ?? pick(arr, "arr_delayed") ?? { minutes: 0, field: "none" };
-}
-function extractFlightObject(parsed) {
+};
+var extractFlightObject = (parsed) => {
   if (!isObj(parsed))
     throw new Error("AirLabs response is not an object");
   const maybeErr = parsed;
@@ -16831,11 +16834,12 @@ function extractFlightObject(parsed) {
     throw new Error(`AirLabs API error (${code2}): ${message}`);
   }
   const resp = parsed.response;
-  if (isObj(resp))
+  if (isObj(resp)) {
     return resp;
+  }
   return parsed;
-}
-function normalizeAirlabsFlight(args) {
+};
+var normalizeAirLabsFlight = (args) => {
   const parsed = JSON.parse(args.resp.rawJsonString);
   const obj = extractFlightObject(parsed);
   const apiFlightIata = toUpper(obj.flight_iata);
@@ -16868,12 +16872,10 @@ function normalizeAirlabsFlight(args) {
     delayFieldUsed: picked.field,
     delayMinutes: picked.minutes,
     status: flags.status,
-    cancelled: flags.cancelled,
-    diverted: flags.diverted,
     withinWindow,
     departTsDiffSeconds: Number.isFinite(diffSeconds) ? diffSeconds : 0
   };
-}
+};
 function canonicalStringify(value2) {
   return JSON.stringify(canonicalize(value2));
 }
@@ -16920,10 +16922,8 @@ function makeEvidenceSource(provider, statusCode, rawJson, query, normalized, er
 function buildEvidencePack(inputs) {
   const threshold = Number(inputs.thresholdMin);
   const delayMinutes = inputs.normalized.delayMinutes;
-  const cancelled = inputs.normalized.cancelled;
-  const diverted = inputs.normalized.diverted;
   const status = inputs.normalized.status;
-  const settledAsDisruption = cancelled || diverted || delayMinutes >= threshold;
+  const settledAsDisruption = delayMinutes >= threshold;
   const pack = {
     schema: "flight.market.evidence.v4",
     workflow: {
@@ -16945,8 +16945,6 @@ function buildEvidencePack(inputs) {
     computed: {
       delayMinutes,
       thresholdMin: threshold,
-      cancelled,
-      diverted,
       status,
       settledAsDisruption
     },
@@ -16956,58 +16954,44 @@ function buildEvidencePack(inputs) {
   const evidenceHash = sha3HexString(canonicalJson);
   return { pack, canonicalJson, evidenceHash };
 }
-var settlementEventAbi = parseAbi([
-  "event SettlementRequested(uint256 indexed marketId, string flightId, uint256 departTs, uint256 thresholdMin)"
-]);
-var SETTLEMENT_EVENT_SIG = "SettlementRequested(uint256,string,uint256,uint256)";
-var SETTLEMENT_EVENT_HASH = keccak256(toBytes(SETTLEMENT_EVENT_SIG));
-function requireString(label, v) {
-  if (typeof v !== "string" || v.length === 0)
-    throw new Error(`Missing/invalid config: ${label}`);
-  return v;
-}
-function requireAddress(label, addr) {
-  if (!/^0x[0-9a-fA-F]{40}$/.test(addr))
-    throw new Error(`${label} must be 0x + 40 hex chars`);
-}
-function airlabsKey(runtime2) {
-  const key = runtime2.getSecret({ id: "AIRLABS_API_KEY" }).result().value;
-  if (!key)
+var getAirLabsApiKey = (runtime2) => {
+  const apiKey = runtime2.getSecret({ id: "AIRLABS_API_KEY" }).result().value;
+  if (!apiKey)
     throw new Error("Missing secret AIRLABS_API_KEY (env var CRE_AIRLABS_API_KEY)");
-  return key;
-}
-function fetchFlight2(runtime2, flightIata) {
-  return fetchAirlabsFlight(runtime2, {
-    baseUrl: runtime2.config.airlabsBaseUrl,
-    apiKey: airlabsKey(runtime2),
+  return apiKey;
+};
+var fetchFlight2 = (runtime2, flightIata) => {
+  return fetchAirLabsFlight(runtime2, {
+    baseUrl: runtime2.config.airLabsBaseUrl,
+    apiKey: getAirLabsApiKey(runtime2),
     flightIata
   });
-}
+};
 var onSettlementRequested = (runtime2, log) => {
   const topics = log.topics.map((t) => bytesToHex(t));
   const data = bytesToHex(log.data);
-  const topic0 = topics[0]?.toLowerCase();
+  const topic = topics[0]?.toLowerCase();
   const expected = SETTLEMENT_EVENT_HASH.toLowerCase();
-  if (topic0 !== expected) {
-    throw new Error(`Wrong log selected. Expected SettlementRequested topic0=${expected} but got ${topic0}.`);
+  if (topic !== expected) {
+    throw new Error(`Wrong log selected. Expected SettlementRequested topic=${expected} but got ${topic}.`);
   }
   const decoded = decodeEventLog({ abi: settlementEventAbi, data, topics });
   const { marketId, flightId, departTs, thresholdMin } = decoded.args;
   const depart = Number(departTs);
   const threshold = Number(thresholdMin);
   const windowSeconds = Number(runtime2.config.matchWindowSeconds);
-  const delayMetric = runtime2.config.airlabsDelayMetric;
+  const delayMetric = runtime2.config.airLabsDelayMetric;
   runtime2.log(`SettlementRequested detected`);
   runtime2.log(`  marketId     = ${marketId.toString()}`);
   runtime2.log(`  flightId     = ${flightId}`);
   runtime2.log(`  departTs     = ${departTs.toString()}`);
   runtime2.log(`  thresholdMin = ${thresholdMin.toString()}`);
-  runtime2.log(`  delayMetric  = ${delayMetric} (using dep_delayed/arr_delayed/delayed)`);
+  runtime2.log(`  delayMetric  = ${delayMetric}`);
   const resp = fetchFlight2(runtime2, flightId);
   let normalized;
   let sourceError;
   try {
-    normalized = normalizeAirlabsFlight({
+    normalized = normalizeAirLabsFlight({
       flightId,
       departTs: depart,
       matchWindowSeconds: windowSeconds,
@@ -17026,7 +17010,7 @@ var onSettlementRequested = (runtime2, log) => {
   const generatedAtTs = Math.floor(Date.now() / 1000);
   const { canonicalJson, evidenceHash } = buildEvidencePack({
     workflowName: "flight-delay-workflow",
-    workflowVersion: "0.7.0-airlabs-flight-only",
+    workflowVersion: "",
     generatedAtTs,
     marketId: marketId.toString(),
     flightId,
@@ -17038,12 +17022,9 @@ var onSettlementRequested = (runtime2, log) => {
     sources
   });
   runtime2.log(`EvidenceHash: ${evidenceHash}`);
-  runtime2.log(`EvidencePack (canonical JSON):`);
   const delayMinutes = normalized.delayMinutes;
-  const cancelled = normalized.cancelled;
-  const diverted = normalized.diverted;
   const status = normalized.status;
-  const settledAsDisruption = cancelled || diverted || delayMinutes >= threshold;
+  const settledAsDisruption = delayMinutes >= threshold;
   const reportPayloadHex = encodeAbiParameters(parseAbiParameters("uint256 marketId, bool delayed, uint256 delayMinutes, bytes32 evidenceHash"), [marketId, settledAsDisruption, BigInt(delayMinutes), evidenceHash]);
   const reportPayloadB64 = hexToBase64(reportPayloadHex);
   const reportResponse = runtime2.report({
@@ -17061,7 +17042,7 @@ var onSettlementRequested = (runtime2, log) => {
     throw new Error(`Network not found: ${runtime2.config.chainSelectorName}`);
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   const writeResult = evmClient.writeReport(runtime2, {
-    receiver: runtime2.config.receiverAddress,
+    receiver: runtime2.config.flightMarketAddr,
     report: reportResponse,
     gasConfig: { gasLimit: runtime2.config.gasLimit }
   }).result();
@@ -17080,8 +17061,6 @@ var onSettlementRequested = (runtime2, log) => {
     departTs: departTs.toString(),
     thresholdMin: thresholdMin.toString(),
     delayMinutes,
-    cancelled,
-    diverted,
     status,
     evidenceHash,
     evidenceCanonicalJson: canonicalJson,
@@ -17095,15 +17074,6 @@ var onSettlementRequested = (runtime2, log) => {
   };
 };
 var initWorkflow = (raw) => {
-  raw.chainSelectorName = requireString("chainSelectorName", raw.chainSelectorName);
-  raw.marketAddress = requireString("marketAddress", raw.marketAddress);
-  raw.receiverAddress = requireString("receiverAddress", raw.receiverAddress);
-  raw.gasLimit = requireString("gasLimit", raw.gasLimit);
-  raw.airlabsBaseUrl = requireString("airlabsBaseUrl", raw.airlabsBaseUrl);
-  raw.airlabsDelayMetric = requireString("airlabsDelayMetric", raw.airlabsDelayMetric);
-  raw.matchWindowSeconds = requireString("matchWindowSeconds", raw.matchWindowSeconds);
-  requireAddress("marketAddress", raw.marketAddress);
-  requireAddress("receiverAddress", raw.receiverAddress);
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: raw.chainSelectorName,
@@ -17114,7 +17084,7 @@ var initWorkflow = (raw) => {
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   return [
     handler(evmClient.logTrigger({
-      addresses: [hexToBase64(raw.marketAddress)]
+      addresses: [hexToBase64(raw.flightMarketAddr)]
     }), onSettlementRequested)
   ];
 };

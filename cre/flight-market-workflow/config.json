@@ -1,10 +1,8 @@
 {
   "chainSelectorName": "ethereum-testnet-sepolia",
-  "marketAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
-  "receiverAddress": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
+  "flightMarketAddr": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
   "gasLimit": "1000000",
-
-  "airlabsBaseUrl": "https://airlabs.co/api/v9",
-  "airlabsDelayMetric": "dep",
+  "airLabsBaseUrl": "https://airlabs.co/api/v9",
+  "airLabsDelayMetric": "dep",
   "matchWindowSeconds": "43200"
 }

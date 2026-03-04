@@ -53,12 +53,9 @@ export function buildEvidencePack(inputs: {
   const threshold = Number(inputs.thresholdMin);
 
   const delayMinutes = inputs.normalized.delayMinutes;
-  const cancelled = inputs.normalized.cancelled;
-  const diverted = inputs.normalized.diverted;
   const status = inputs.normalized.status;
 
-  const settledAsDisruption =
-    cancelled || diverted || delayMinutes >= threshold;
+  const settledAsDisruption = delayMinutes >= threshold;
 
   const pack: EvidencePack = {
     schema: "flight.market.evidence.v4",
@@ -81,8 +78,6 @@ export function buildEvidencePack(inputs: {
     computed: {
       delayMinutes,
       thresholdMin: threshold,
-      cancelled,
-      diverted,
       status,
       settledAsDisruption,
     },
@@ -91,5 +86,6 @@ export function buildEvidencePack(inputs: {
 
   const canonicalJson = canonicalStringify(pack);
   const evidenceHash = sha3HexString(canonicalJson);
+  
   return { pack, canonicalJson, evidenceHash };
 }

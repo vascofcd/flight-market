@@ -52,7 +52,7 @@ const fetchFlight = (
   return { statusCode, rawJsonString: bodyText };
 };
 
-export function fetchAirlabsFlight(
+export function fetchAirLabsFlight(
   runtime: Runtime<unknown>,
   cfg: AirlabsFlightConfig,
 ): FlightAPIResponse {

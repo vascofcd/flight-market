@@ -1,3 +1,55 @@
+export type Config = {
+  chainSelectorName: string;
+  flightMarketAddr: string;
+  gasLimit: string;
+  airLabsBaseUrl: string;
+  airLabsDelayMetric: "dep" | "arr" | "any";
+  matchWindowSeconds: string;
+};
+
+export type SettlementResult = {
+  marketId: string;
+  flightId: string;
+  departTs: string;
+  thresholdMin: string;
+  delayMinutes: number;
+  status: string;
+
+  evidenceHash: `0x${string}`;
+  evidenceCanonicalJson: string;
+
+  reportPayloadHex: `0x${string}`;
+  reportPayloadB64: string;
+
+  writeTxHashHex: `0x${string}`;
+  writeTxStatus: string;
+  receiverExecutionStatus: string;
+  transactionFeeWei: string;
+  errorMessage: string;
+};
+
+//@todo see this k value
+export type AirLabsError = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+  [k: string]: unknown;
+};
+
+//@todo see this k value
+export type AirLabsFlight = {
+  flight_iata?: string;
+  cs_flight_iata?: string;
+  dep_time_ts?: number;
+  arr_time_ts?: number;
+  delayed?: number | null;
+  dep_delayed?: number | null;
+  arr_delayed?: number | null;
+  status?: string | null;
+  [k: string]: unknown;
+};
+
 export type FlightAPIResponse = {
   statusCode: number;
   rawJsonString: string;
@@ -18,8 +70,6 @@ export type NormalizedFlightStatus = {
   delayMinutes: number;
 
   status: string;
-  cancelled: boolean;
-  diverted: boolean;
 
   // sanity check
   withinWindow: boolean;
@@ -63,11 +113,7 @@ export type EvidencePack = {
   computed: {
     delayMinutes: number;
     thresholdMin: number;
-    cancelled: boolean;
-    diverted: boolean;
     status: string;
-
-    // "YES" = disruption (cancelled OR diverted OR delay>=threshold)
     settledAsDisruption: boolean;
   };
   sources: EvidenceSource[];
