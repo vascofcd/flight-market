@@ -22,9 +22,6 @@ export type SettlementResult = {
   reportPayloadB64: string;
 
   writeTxHashHex: `0x${string}`;
-  writeTxStatus: string;
-  receiverExecutionStatus: string;
-  transactionFeeWei: string;
   errorMessage: string;
 };
 

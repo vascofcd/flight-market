@@ -17040,19 +17040,18 @@ var onSettlementRequested = (runtime2, log) => {
   });
   if (!network248)
     throw new Error(`Network not found: ${runtime2.config.chainSelectorName}`);
+  runtime2.log(`Settling Flight Market contract at: ${runtime2.config.flightMarketAddr}`);
   const evmClient = new ClientCapability(network248.chainSelector.selector);
+  runtime2.log(`Writing report — marketId: ${marketId}`);
   const writeResult = evmClient.writeReport(runtime2, {
     receiver: runtime2.config.flightMarketAddr,
     report: reportResponse,
     gasConfig: { gasLimit: runtime2.config.gasLimit }
   }).result();
+  runtime2.log("Waiting for write report response");
   const txHashHex = bytesToHex(writeResult.txHash ?? new Uint8Array(32));
-  const writeTxStatus = String(writeResult.txStatus ?? "UNKNOWN");
-  const receiverExecutionStatus = String(writeResult.receiverContractExecutionStatus ?? "UNKNOWN");
-  const transactionFeeWei = (writeResult.transactionFee ?? 0n).toString();
   const errorMessage = String(writeResult.errorMessage ?? "");
   runtime2.log(`Write report tx hash: ${txHashHex}`);
-  runtime2.log(`TxStatus=${writeTxStatus}, ReceiverStatus=${receiverExecutionStatus}, FeeWei=${transactionFeeWei}`);
   if (errorMessage.length > 0)
     runtime2.log(`ErrorMessage=${errorMessage}`);
   return {
@@ -17067,9 +17066,6 @@ var onSettlementRequested = (runtime2, log) => {
     reportPayloadHex,
     reportPayloadB64,
     writeTxHashHex: txHashHex,
-    writeTxStatus,
-    receiverExecutionStatus,
-    transactionFeeWei,
     errorMessage
   };
 };

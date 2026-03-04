@@ -9,11 +9,11 @@ import {
   type EVMLog,
 } from "@chainlink/cre-sdk";
 import { decodeEventLog, encodeAbiParameters, parseAbiParameters } from "viem";
-import { fetchAirLabsFlight } from "./providers/airLabsDelays";
+import { fetchAirLabsFlight } from "./airLabsDelays";
 import {
   settlementEventAbi,
   SETTLEMENT_EVENT_HASH,
-} from "./contracts/settlementEvent";
+} from "./contract/settlementEvent";
 import { normalizeAirLabsFlight } from "./lib/normalize";
 import { buildEvidencePack, makeEvidenceSource } from "./lib/evidence";
 import { getAirLabsApiKey } from "./helpers";
@@ -132,9 +132,6 @@ const onSettlementRequested = (
   });
 
   runtime.log(`EvidenceHash: ${evidenceHash}`);
-  //@todo redo, it throws rate limit exceeded error
-  // runtime.log(`EvidencePack (canonical JSON):`);
-  // runtime.log(canonicalJson);
 
   const delayMinutes = normalized.delayMinutes;
   const status = normalized.status;
@@ -166,7 +163,13 @@ const onSettlementRequested = (
   if (!network)
     throw new Error(`Network not found: ${runtime.config.chainSelectorName}`);
 
+  runtime.log(
+    `Settling Flight Market contract at: ${runtime.config.flightMarketAddr}`,
+  );
+
   const evmClient = new EVMClient(network.chainSelector.selector);
+
+  runtime.log(`Writing report — marketId: ${marketId}`);
 
   const writeResult = evmClient
     .writeReport(runtime, {
@@ -176,22 +179,15 @@ const onSettlementRequested = (
     })
     .result();
 
+  runtime.log("Waiting for write report response");
+
   const txHashHex = bytesToHex(
     writeResult.txHash ?? new Uint8Array(32),
   ) as `0x${string}`;
-  const writeTxStatus = String(writeResult.txStatus ?? "UNKNOWN");
-  const receiverExecutionStatus = String(
-    writeResult.receiverContractExecutionStatus ?? "UNKNOWN",
-  );
-  const transactionFeeWei = (
-    (writeResult.transactionFee ?? 0n) as bigint
-  ).toString();
+
   const errorMessage = String(writeResult.errorMessage ?? "");
 
   runtime.log(`Write report tx hash: ${txHashHex}`);
-  runtime.log(
-    `TxStatus=${writeTxStatus}, ReceiverStatus=${receiverExecutionStatus}, FeeWei=${transactionFeeWei}`,
-  );
 
   if (errorMessage.length > 0) runtime.log(`ErrorMessage=${errorMessage}`);
 
@@ -207,9 +203,6 @@ const onSettlementRequested = (
     reportPayloadHex,
     reportPayloadB64,
     writeTxHashHex: txHashHex,
-    writeTxStatus,
-    receiverExecutionStatus,
-    transactionFeeWei,
     errorMessage,
   };
 };
