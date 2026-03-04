@@ -1,4 +1,5 @@
 import "@rainbow-me/rainbowkit/styles.css";
+import "./index.css";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { Providers } from "./providers";
