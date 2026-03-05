@@ -3,6 +3,7 @@ import { formatEth, formatUnixSeconds } from "../utils/format";
 import { useMarket } from "../hooks/useMarket";
 import { MarketActionsBox } from "../components/MarketActionsBox";
 import { getMarketStatus } from "../features/marketStatus";
+import { UserPosition } from "../components/UserPosition";
 
 function parseMarketId(value: string | undefined): bigint | null {
   if (!value) return null;
@@ -170,7 +171,9 @@ const MarketDetails = () => {
                 <div className="text-xs text-slate-500">
                   Total{" "}
                   <span className="font-mono text-slate-800">
-                    {formatEth(marketQuery.data.yesPool + marketQuery.data.noPool)}
+                    {formatEth(
+                      marketQuery.data.yesPool + marketQuery.data.noPool,
+                    )}
                   </span>{" "}
                   ETH
                 </div>
@@ -212,9 +215,10 @@ const MarketDetails = () => {
                 </div>
               </div>
             </section>
+            <UserPosition marketId={marketId} />
           </div>
 
-          {/* RIGHT (sticky) */}
+          {/* Right Side */}
           <aside className="lg:col-span-4">
             <div className="lg:sticky lg:top-24">
               <MarketActionsBox market={marketQuery.data} />

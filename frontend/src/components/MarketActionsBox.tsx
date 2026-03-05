@@ -72,7 +72,7 @@ export function MarketActionsBox(props: { market: Market }) {
 
   return (
     <div className="space-y-4">
-      {/* Trade card (like polymarket sidebar) */}
+      {/* Trade */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -102,46 +102,6 @@ export function MarketActionsBox(props: { market: Market }) {
             </div>
           )}
         </div>
-      </section>
-
-      {/* Your position */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-base font-semibold">Your position</h3>
-
-        {!address ? (
-          <p className="mt-2 text-sm text-slate-600">
-            Connect wallet to see your position.
-          </p>
-        ) : (
-          <div className="mt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-emerald-50 p-4 ring-1 ring-inset ring-emerald-200">
-                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  YES staked
-                </div>
-                <div className="mt-1 font-mono text-sm font-semibold text-emerald-900">
-                  {formatEth(pos.yesAmount)} ETH
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  NO staked
-                </div>
-                <div className="mt-1 font-mono text-sm font-semibold text-slate-900">
-                  {formatEth(pos.noAmount)} ETH
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-xs ring-1 ring-inset ring-slate-200">
-              <span className="text-slate-600">Claimed</span>
-              <span className="font-mono text-slate-900">
-                {String(pos.hasClaimed)}
-              </span>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Settlement / Resolution */}

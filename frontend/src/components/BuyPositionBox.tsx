@@ -179,7 +179,7 @@ export function BuyPositionBox(props: {
 
       {buy.isConfirmed ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          Trade confirmed ✅
+          Trade confirmed!
         </div>
       ) : null}
     </div>
