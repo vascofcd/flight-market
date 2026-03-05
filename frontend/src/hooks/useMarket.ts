@@ -12,8 +12,10 @@ export function useMarket(marketId: bigint | null) {
     enabled: Boolean(publicClient) && marketId !== null,
     queryFn: async () => {
       const client = publicClient;
+      
       if (!client || marketId === null)
         throw new Error("Missing client/marketId");
+
       return fetchMarket(client, marketId);
     },
     refetchInterval: 10_000,

@@ -1,9 +1,10 @@
 import { Link, useParams } from "react-router";
-import { formatEth, formatUnixSeconds } from "../utils/format";
+import { formatUnixSeconds } from "../utils/format";
 import { useMarket } from "../hooks/useMarket";
 import { MarketActionsBox } from "../components/MarketActionsBox";
 import { getMarketStatus } from "../features/marketStatus";
 import { UserPosition } from "../components/UserPosition";
+import LiquidityPools from "../components/LiquidityPoolsDetails";
 
 function parseMarketId(value: string | undefined): bigint | null {
   if (!value) return null;
@@ -112,12 +113,11 @@ const MarketDetails = () => {
         ) : null}
       </header>
 
-      {/* Body: left details + right actions (Polymarket-ish) */}
       {marketQuery.data ? (
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* LEFT */}
+          {/* Left panel*/}
           <div className="space-y-6 lg:col-span-8">
-            {/* Params */}
+            {/* Details */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-base font-semibold">Market details</h3>
 
@@ -164,61 +164,21 @@ const MarketDetails = () => {
               </dl>
             </section>
 
-            {/* Pools */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold">Liquidity pools</h3>
-                <div className="text-xs text-slate-500">
-                  Total{" "}
-                  <span className="font-mono text-slate-800">
-                    {formatEth(
-                      marketQuery.data.yesPool + marketQuery.data.noPool,
-                    )}
-                  </span>{" "}
-                  ETH
-                </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="min-w-0">
+                <LiquidityPools
+                  yesPool={marketQuery.data.yesPool}
+                  noPool={marketQuery.data.noPool}
+                />
               </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                      YES pool
-                    </div>
-                    <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
-                      Delayed
-                    </span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-emerald-900">
-                    {formatEth(marketQuery.data.yesPool)}{" "}
-                    <span className="text-sm font-semibold text-emerald-800">
-                      ETH
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                      NO pool
-                    </div>
-                    <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold text-slate-800 ring-1 ring-inset ring-slate-200">
-                      Not delayed
-                    </span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-slate-900">
-                    {formatEth(marketQuery.data.noPool)}{" "}
-                    <span className="text-sm font-semibold text-slate-700">
-                      ETH
-                    </span>
-                  </div>
-                </div>
+              <div className="min-w-0">
+                <UserPosition marketId={marketId} />
               </div>
-            </section>
-            <UserPosition marketId={marketId} />
+            </div>
           </div>
 
-          {/* Right Side */}
+          {/* Right panel */}
           <aside className="lg:col-span-4">
             <div className="lg:sticky lg:top-24">
               <MarketActionsBox market={marketQuery.data} />
