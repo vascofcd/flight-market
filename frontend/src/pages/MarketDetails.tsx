@@ -1,31 +1,12 @@
 import { Link, useParams } from "react-router";
-import { formatUnixSeconds } from "../utils/format";
 import { useMarket } from "../hooks/useMarket";
-import { MarketActionsBox } from "../components/MarketActionsBox";
 import { getMarketStatus } from "../features/marketStatus";
 import { UserPosition } from "../components/UserPosition";
-import LiquidityPools from "../components/LiquidityPoolsDetails";
-
-function parseMarketId(value: string | undefined): bigint | null {
-  if (!value) return null;
-  if (!/^\d+$/.test(value)) return null;
-  return BigInt(value);
-}
-
-function statusPillClass(status: string) {
-  const base =
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset";
-  const s = status.toLowerCase();
-
-  if (s.includes("open") || s.includes("trading"))
-    return `${base} bg-emerald-50 text-emerald-700 ring-emerald-200`;
-  if (s.includes("closed") || s.includes("await") || s.includes("request"))
-    return `${base} bg-amber-50 text-amber-800 ring-amber-200`;
-  if (s.includes("resolved") || s.includes("settled"))
-    return `${base} bg-slate-100 text-slate-800 ring-slate-200`;
-
-  return `${base} bg-slate-50 text-slate-700 ring-slate-200`;
-}
+import { LiquidityPoolsDetails } from "../components/LiquidityPoolsDetails";
+import { MarketActionsBox } from "../components/MarketActionsBox";
+import { formatUnixSeconds } from "../utils/format";
+import { statusPillClass } from "../utils/statusPillClass";
+import { parseMarketId } from "../utils/parseMarketId";
 
 const MarketDetails = () => {
   const { marketId: marketIdParam } = useParams();
@@ -166,7 +147,7 @@ const MarketDetails = () => {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="min-w-0">
-                <LiquidityPools
+                <LiquidityPoolsDetails
                   yesPool={marketQuery.data.yesPool}
                   noPool={marketQuery.data.noPool}
                 />

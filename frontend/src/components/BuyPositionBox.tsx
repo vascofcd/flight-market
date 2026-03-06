@@ -3,12 +3,7 @@ import { parseEther } from "viem";
 import { useAccount, useChainId } from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { useBuyPosition } from "../hooks/useBuyPosition";
-
-function isValidAmount(value: string): boolean {
-  if (!value.trim()) return false;
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0;
-}
+import { isValidAmount } from "../utils/validate";
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm " +

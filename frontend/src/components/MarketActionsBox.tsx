@@ -6,13 +6,13 @@ import { useClaim } from "../hooks/useClaim";
 import { useClaimedPayout } from "../hooks/useClaimedPayout";
 import { formatEth, formatUnixSeconds } from "../utils/format";
 import { BuyPositionBox } from "./BuyPositionBox";
-import { Banner } from "./UI/Banner";
+import { Banner } from "./ui/Banner";
 import type { Market } from "../features/types";
 
 const monoBox =
   "break-all rounded-lg bg-white/70 p-2 font-mono text-xs ring-1 ring-inset";
 
-export function MarketActionsBox(props: { market: Market }) {
+export const MarketActionsBox = (props: { market: Market }) => {
   const { address } = useAccount();
   const pos = useUserPosition(props.market.marketId);
 

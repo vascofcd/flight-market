@@ -5,7 +5,7 @@ type LiquidityPoolsProps = {
   noPool: bigint;
 };
 
-const LiquidityPools = ({ yesPool, noPool }: LiquidityPoolsProps) => {
+export const LiquidityPoolsDetails = ({ yesPool, noPool }: LiquidityPoolsProps) => {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
@@ -53,5 +53,3 @@ const LiquidityPools = ({ yesPool, noPool }: LiquidityPoolsProps) => {
     </section>
   );
 };
-
-export default LiquidityPools;

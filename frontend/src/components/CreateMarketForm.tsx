@@ -1,33 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { sepolia } from "wagmi/chains";
-import { datetimeLocalToUnixSeconds, nowUnixSeconds } from "../utils/datetime";
+import { datetimeLocalToUnixSeconds } from "../utils/datetime";
 import { useCreateMarket } from "../hooks/useCreateMarket";
-
-type FormState = {
-  flightId: string;
-  departLocal: string;
-  thresholdMin: string;
-  closeLocal: string;
-};
-
-function validate(state: FormState): string | null {
-  if (!state.flightId.trim()) return "Flight ID is required.";
-  if (!state.departLocal) return "Departure date/time is required.";
-  if (!state.closeLocal) return "Close date/time is required.";
-  const threshold = Number(state.thresholdMin);
-  if (!Number.isFinite(threshold) || threshold <= 0)
-    return "Threshold minutes must be > 0.";
-
-  const departTs = datetimeLocalToUnixSeconds(state.departLocal);
-  const closeTs = datetimeLocalToUnixSeconds(state.closeLocal);
-  const now = nowUnixSeconds();
-
-  if (departTs <= now) return "Departure must be in the future.";
-  if (closeTs <= now) return "Close time must be in the future.";
-  if (closeTs >= departTs) return "Close time must be before departure.";
-
-  return null;
-}
+import { Banner } from "./ui/Banner";
+import { validate } from "../utils/validate";
+import type { FormState } from "../utils/types";
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm " +
@@ -37,34 +14,6 @@ const inputClass =
 const labelClass = "text-sm font-medium text-slate-700";
 
 const helperClass = "mt-1 text-xs text-slate-500";
-
-function Banner({
-  tone,
-  title,
-  children,
-}: {
-  tone: "error" | "warn" | "info" | "success";
-  title: string;
-  children?: React.ReactNode;
-}) {
-  const styles =
-    tone === "error"
-      ? "border-rose-200 bg-rose-50 text-rose-800"
-      : tone === "warn"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : tone === "success"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-slate-200 bg-slate-50 text-slate-800";
-
-  return (
-    <div className={`rounded-xl border p-4 text-sm ${styles}`}>
-      <div className="font-semibold">{title}</div>
-      {children ? (
-        <div className="mt-1 text-sm opacity-90">{children}</div>
-      ) : null}
-    </div>
-  );
-}
 
 export function CreateMarketForm() {
   const [form, setForm] = useState<FormState>({
