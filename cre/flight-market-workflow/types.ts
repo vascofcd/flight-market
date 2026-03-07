@@ -115,3 +115,57 @@ export type EvidencePack = {
   };
   sources: EvidenceSource[];
 };
+
+export interface FirestoreWriteData {
+  fields: {
+    statusCode: {
+      integerValue: number | string;
+    };
+    id: {
+      stringValue: string;
+    };
+    flightId: {
+      stringValue: string;
+    };
+    delayed: {
+      booleanValue: boolean;
+    };
+    rawJsonString: {
+      stringValue: string;
+    };
+    txHash: {
+      stringValue: string;
+    };
+    createdAt: {
+      integerValue: number;
+    };
+  };
+}
+
+export interface FirestoreWriteResponse {
+  name: string;
+  fields: {
+    id: {
+      stringValue: string;
+    };
+    statusCode: {
+      integerValue: string;
+    };
+    rawJsonString: {
+      stringValue: string;
+    };
+    delayed: {
+      booleanValue: boolean;
+    };
+  };
+  createTime: string;
+  updateTime: string;
+}
+
+export interface SignupNewUserResponse {
+  kind: string;
+  idToken: string;
+  refreshToken: string;
+  expiresIn: string;
+  localId: string;
+}

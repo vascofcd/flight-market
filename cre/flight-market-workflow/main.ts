@@ -10,6 +10,7 @@ import {
 } from "@chainlink/cre-sdk";
 import { decodeEventLog, encodeAbiParameters, parseAbiParameters } from "viem";
 import { fetchAirLabsFlight } from "./integrations/airLabsDelays";
+import { writeToFirestore } from "./integrations/firebase";
 import {
   settlementEventAbi,
   SETTLEMENT_EVENT_HASH,
@@ -17,8 +18,19 @@ import {
 import { normalizeAirLabsFlight } from "./lib/normalize";
 import { buildEvidencePack, makeEvidenceSource } from "./lib/evidence";
 import { getAirLabsApiKey } from "./helpers";
-import type { Config, FlightAPIResponse, SettlementResult } from "./types";
+import type {
+  Config,
+  FirestoreWriteResponse,
+  FlightAPIResponse,
+  SettlementResult,
+} from "./types";
 
+/**
+ *
+ * @param runtime
+ * @param flightIata
+ * @returns
+ */
 const fetchFlight = (
   runtime: Runtime<Config>,
   flightIata: string,
@@ -30,10 +42,19 @@ const fetchFlight = (
   });
 };
 
+/**
+ *
+ * @param runtime
+ * @param log
+ * @returns
+ */
 const onSettlementRequested = (
   runtime: Runtime<Config>,
   log: EVMLog,
 ): SettlementResult => {
+  // ------------------------------------------------
+  //    1: Decode SettlementRequested event
+  // ------------------------------------------------
   const topics = log.topics.map((t) => bytesToHex(t)) as [
     `0x${string}`,
     ...`0x${string}`[],
@@ -71,11 +92,17 @@ const onSettlementRequested = (
   //@todo remove delayMetric, always departure
   runtime.log(`  delayMetric  = ${delayMetric}`);
 
+  // ------------------------------------------------
+  //    2: API from AirLabs fetches the flight
+  // ------------------------------------------------
   const resp = fetchFlight(runtime, flightId);
 
   let normalized;
   let sourceError: string | undefined;
 
+  // ------------------------------------------------
+  //    3: Normalize
+  // ------------------------------------------------
   try {
     normalized = normalizeAirLabsFlight({
       flightId,
@@ -95,6 +122,9 @@ const onSettlementRequested = (
     sourceError = e instanceof Error ? e.message : String(e);
   }
 
+  // ------------------------------------------------
+  //    4: Build evidence
+  // ------------------------------------------------
   const sources = [
     makeEvidenceSource(
       "AirLabsFlight",
@@ -133,6 +163,9 @@ const onSettlementRequested = (
 
   runtime.log(`EvidenceHash: ${evidenceHash}`);
 
+  // ---------------------------------------------------------
+  //    5: Submits on-chain settlement in `MarketFlight.sol`
+  // ---------------------------------------------------------
   const delayMinutes = normalized.delayMinutes;
   const status = normalized.status;
   const settledAsDisruption = delayMinutes >= threshold;
@@ -160,8 +193,9 @@ const onSettlementRequested = (
     isTestnet: true,
   });
 
-  if (!network)
+  if (!network) {
     throw new Error(`Network not found: ${runtime.config.chainSelectorName}`);
+  }
 
   runtime.log(
     `Settling Flight Market contract at: ${runtime.config.flightMarketAddr}`,
@@ -169,7 +203,7 @@ const onSettlementRequested = (
 
   const evmClient = new EVMClient(network.chainSelector.selector);
 
-  runtime.log(`Writing report — marketId: ${marketId}`);
+  runtime.log(`Waiting for write report... (marketId: ${marketId})`);
 
   const writeResult = evmClient
     .writeReport(runtime, {
@@ -179,8 +213,6 @@ const onSettlementRequested = (
     })
     .result();
 
-  runtime.log("Waiting for write report response");
-
   const txHashHex = bytesToHex(
     writeResult.txHash ?? new Uint8Array(32),
   ) as `0x${string}`;
@@ -189,7 +221,21 @@ const onSettlementRequested = (
 
   runtime.log(`Write report tx hash: ${txHashHex}`);
 
-  if (errorMessage.length > 0) runtime.log(`ErrorMessage=${errorMessage}`);
+  if (errorMessage.length > 0) {
+    runtime.log(`ErrorMessage=${errorMessage}`);
+  }
+
+  // ------------------------------------------------
+  //    4: Saves to firestore
+  // ------------------------------------------------
+  const firestoreResult: FirestoreWriteResponse = writeToFirestore(
+    runtime,
+    txHashHex,
+    flightId,
+    resp,
+  );
+
+  runtime.log(`Firestore Document: ${firestoreResult.name}`);
 
   return {
     marketId: marketId.toString(),
@@ -207,6 +253,11 @@ const onSettlementRequested = (
   };
 };
 
+/**
+ *
+ * @param raw
+ * @returns
+ */
 const initWorkflow = (raw: Config) => {
   //@todo add schema
   const network = getNetwork({
