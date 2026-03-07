@@ -9,7 +9,7 @@ import {
   type EVMLog,
 } from "@chainlink/cre-sdk";
 import { decodeEventLog, encodeAbiParameters, parseAbiParameters } from "viem";
-import { fetchAirLabsFlight } from "./airLabsDelays";
+import { fetchAirLabsFlight } from "./integrations/airLabsDelays";
 import {
   settlementEventAbi,
   SETTLEMENT_EVENT_HASH,
