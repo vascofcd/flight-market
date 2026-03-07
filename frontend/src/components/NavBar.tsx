@@ -1,52 +1,31 @@
 import { NavLink } from "react-router";
 
+const links = [
+  { to: "/", label: "Home" },
+  { to: "/create-market", label: "Create" },
+  { to: "/data-details", label: "Data" },
+];
+
 export const NavBar = () => {
-  const base =
-    "inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition " +
-    "focus:outline-none focus:ring-2 focus:ring-slate-400/40";
-
   return (
-    <nav className="flex items-center gap-2">
-      <NavLink
-        to="/"
-        className={({ isActive }) =>
-          [
-            base,
-            isActive
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          ].join(" ")
-        }
-      >
-        Home
-      </NavLink>
-
-      <NavLink
-        to="/create-market"
-        className={({ isActive }) =>
-          [
-            base,
-            isActive
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          ].join(" ")
-        }
-      >
-        Create
-      </NavLink>
-      <NavLink
-        to="/data-details"
-        className={({ isActive }) =>
-          [
-            base,
-            isActive
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          ].join(" ")
-        }
-      >
-        Data
-      </NavLink>
+    <nav className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/70 p-1 shadow-sm backdrop-blur">
+      {links.map((link) => (
+        <NavLink
+          key={link.to}
+          to={link.to}
+          className={({ isActive }) =>
+            [
+              "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-out",
+              "focus:outline-none focus:ring-2 focus:ring-slate-300/50",
+              isActive
+                ? "bg-slate-900 text-white shadow-sm"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
+            ].join(" ")
+          }
+        >
+          {link.label}
+        </NavLink>
+      ))}
     </nav>
   );
 };
