@@ -44,9 +44,26 @@ const Markets = () => {
 
       <div className="mt-5">
         {marketsQuery.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-4 w-48 animate-pulse rounded bg-slate-100" />
-            <div className="h-32 animate-pulse rounded-xl bg-slate-100" />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-slate-200 bg-white p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="h-6 w-24 animate-pulse rounded bg-slate-100" />
+                  <div className="h-6 w-20 animate-pulse rounded bg-slate-100" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                  <div className="h-4 w-5/6 animate-pulse rounded bg-slate-100" />
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="h-20 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-20 animate-pulse rounded-xl bg-slate-100" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
 
@@ -57,97 +74,96 @@ const Markets = () => {
         ) : null}
 
         {marketsQuery.data ? (
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Market
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Flight
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Departure
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Close
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      YES Pool
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                      NO Pool
-                    </th>
-                  </tr>
-                </thead>
+          marketsQuery.data.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {marketsQuery.data.map((m) => {
+                const status = getMarketStatus(m, nowSec);
 
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {marketsQuery.data.map((m) => {
-                    const status = getMarketStatus(m, nowSec);
+                return (
+                  <Link
+                    key={m.marketId.toString()}
+                    to={`/markets/${m.marketId.toString()}`}
+                    className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-lg font-semibold text-slate-900">
+                          Market #{m.marketId.toString()}
+                        </span>
+                        <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-800">
+                          Flight {m.flightId}
+                        </span>
+                      </div>
 
-                    return (
-                      <tr
-                        key={m.marketId.toString()}
-                        className="hover:bg-slate-50/60"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-sm">
-                          <Link
-                            to={`/markets/${m.marketId.toString()}`}
-                            className="font-semibold text-slate-900 underline-offset-4 hover:underline"
-                          >
-                            #{m.marketId.toString()}
-                          </Link>
-                        </td>
+                      <span className={statusPillClass(String(status))}>
+                        {String(status)}
+                      </span>
+                    </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
-                          <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-800">
-                            {m.flightId}
-                          </span>
-                        </td>
-
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
+                    <div className="mt-4 space-y-3 text-sm">
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                        <span className="text-slate-500">Departure</span>
+                        <span className="text-right font-medium text-slate-800">
                           {formatUnixSeconds(m.departTs)}
-                        </td>
+                        </span>
+                      </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-500">Close</span>
+                        <span className="text-right font-medium text-slate-800">
                           {formatUnixSeconds(m.closeTs)}
-                        </td>
+                        </span>
+                      </div>
+                    </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-sm">
-                          <span className={statusPillClass(String(status))}>
-                            {String(status)}
-                          </span>
-                        </td>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                          YES Pool
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-emerald-900">
+                          {formatEth(m.yesPool)} ETH
+                        </p>
+                      </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-800">
-                          {formatEth(m.yesPool)}
-                        </td>
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-rose-700">
+                          NO Pool
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-rose-900">
+                          {formatEth(m.noPool)} ETH
+                        </p>
+                      </div>
+                    </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-800">
-                          {formatEth(m.noPool)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                      <span className="text-sm text-slate-500">
+                        Click to view market
+                      </span>
+                      <span className="text-sm font-semibold text-slate-900 transition group-hover:translate-x-0.5">
+                        Open →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-
-            <div className="flex items-center justify-between bg-slate-50 px-4 py-3 text-xs text-slate-600">
-              <span>Tip: click a market to trade YES/NO.</span>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
+              <h3 className="text-base font-semibold text-slate-900">
+                No markets yet
+              </h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Create the first flight delay market to get started.
+              </p>
               <Link
                 to="/create-market"
-                className="font-semibold text-slate-900 underline-offset-4 hover:underline"
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
               >
-                Create a new market →
+                Create market
               </Link>
             </div>
-          </div>
+          )
         ) : null}
       </div>
     </section>
