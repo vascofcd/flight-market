@@ -6,9 +6,7 @@ import {
 } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ReceiverTemplate} from "./ReceiverTemplate.sol";
 
-//** @todo
 contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
-
     uint256 public constant TRADING_CUTOFF_SECONDS = 2 hours;
     uint256 public constant MAX_STAKE_PER_WALLET_PER_MARKET = 2 ether;
     uint256 public constant MAX_TOTAL_POOL_PER_MARKET = 50 ether;
@@ -105,10 +103,8 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
     // -------------------------------------------------------------------------
 
     constructor(
-        address token,
         address _forwarderAddress
-    ) ReceiverTemplate(_forwarderAddress) {
-    }
+    ) ReceiverTemplate(_forwarderAddress) {}
 
     // -------------------------------------------------------------------------
     // Market creation & views
@@ -119,9 +115,7 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
         uint256 departTs,
         uint256 thresholdMin,
         uint256 closeTs
-    ) external returns (uint256 marketId) {
-        //@todo Improve errors
-
+    ) external onlyOwner returns (uint256 marketId) {
         // The flight needs a name
         if (bytes(flightId).length == 0) revert InvalidCloseTime();
 
@@ -222,13 +216,11 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
         if (m.resolved) revert MarketAlreadyResolved();
         if (uint256(block.timestamp) >= m.closeTs) revert MarketClosed();
 
-        // Enforce per-wallet cap across both sides
         uint256 current = yesStake[marketId][msg.sender] +
             noStake[marketId][msg.sender];
         if (current + msg.value > MAX_STAKE_PER_WALLET_PER_MARKET)
             revert StakeCapExceeded();
 
-        // Enforce total pool cap
         uint256 totalAfter = m.yesPool + m.noPool + msg.value;
         if (totalAfter > MAX_TOTAL_POOL_PER_MARKET) revert PoolCapExceeded();
 
@@ -249,10 +241,10 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
 
     function requestSettlement(uint256 marketId) external {
         Market storage m = markets[marketId];
-        // if (m.departTs == 0) revert MarketNotFound();
-        // if (m.resolved) revert MarketAlreadyResolved();
-        // if (uint256(block.timestamp) < m.closeTs) revert MarketNotClosed();
-        // if (m.settlementRequestedTs != 0) revert SettlementAlreadyRequested();
+        if (m.departTs == 0) revert MarketNotFound();
+        if (m.resolved) revert MarketAlreadyResolved();
+        if (uint256(block.timestamp) < m.closeTs) revert MarketNotClosed();
+        if (m.settlementRequestedTs != 0) revert SettlementAlreadyRequested();
 
         m.settlementRequestedTs = block.timestamp;
 
@@ -288,10 +280,9 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
         }
 
         Market storage m = markets[marketId];
-        // if (m.departTs == 0) revert MarketNotFound();
-        // if (m.resolved) revert MarketAlreadyResolved();
-
-        // if (m.settlementRequestedTs == 0) revert BadReport();
+        if (m.departTs == 0) revert MarketNotFound();
+        if (m.resolved) revert MarketAlreadyResolved();
+        if (m.settlementRequestedTs == 0) revert BadReport();
 
         m.resolved = true;
         m.delayed = delayed;
@@ -348,7 +339,7 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
             }
         }
 
-        // if (payout == 0) revert NothingToClaim();
+        if (payout == 0) revert NothingToClaim();
 
         (bool ok, ) = msg.sender.call{value: payout}("");
         require(ok, "TRANSFER_FAILED");
@@ -370,14 +361,6 @@ contract FlightMarket is ReceiverTemplate, ReentrancyGuard {
         Market storage m = markets[marketId];
         if (m.departTs == 0) revert MarketNotFound();
         return m.yesPool + m.noPool;
-    }
-
-    // @todo: this method is a helper, delete later
-    function setMarketResolved(uint256 marketId) public {
-        Market storage m = markets[marketId];
-        m.resolved = true;
-        m.delayed = true;
-        m.yesPool = 1 ether;
     }
 
     receive() external payable {}

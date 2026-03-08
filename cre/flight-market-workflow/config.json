@@ -1,6 +1,6 @@
 {
   "chainSelectorName": "ethereum-testnet-sepolia",
-  "flightMarketAddr": "0x704b455caC0054114Fb8C4DDC63bd598525A8eF7",
+  "flightMarketAddr": "0x7269b0b497FA850E0937399493379A6E945FCf97",
   "gasLimit": "1000000",
   "airLabsBaseUrl": "https://airlabs.co/api/v9",
   "airLabsDelayMetric": "dep",

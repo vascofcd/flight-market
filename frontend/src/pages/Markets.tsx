@@ -19,7 +19,7 @@ const Markets = () => {
           <p className="mt-1 text-sm text-slate-600">
             Total markets onchain:{" "}
             <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-800">
-              {count.toString()}
+              {(count - BigInt(1)).toString()}
             </span>
           </p>
 
