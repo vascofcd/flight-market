@@ -26,8 +26,8 @@ export const UserPosition = (props: { marketId: bigint }) => {
               </div>
             </div>
 
-            <div className="rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-rose-700 text-rose-700">
                 NO staked
               </div>
               <div className="mt-1 font-mono text-sm font-semibold text-slate-900">

@@ -35,12 +35,12 @@ export const LiquidityPoolsDetails = ({ yesPool, noPool }: LiquidityPoolsProps) 
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
               NO pool
             </div>
-            <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold text-slate-800 ring-1 ring-inset ring-slate-200">
+            <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold text-slate-800 ring-1 ring-inset ring-slate-200 whitespace-nowrap">
               Not delayed
             </span>
           </div>

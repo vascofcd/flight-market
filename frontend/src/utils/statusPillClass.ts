@@ -4,11 +4,11 @@ export const statusPillClass = (status: string) => {
   const s = status.toLowerCase();
 
   if (s.includes("open") || s.includes("trading"))
-    return `${base} bg-emerald-50 text-emerald-700 ring-emerald-200`;
+    return `${base} bg-emerald-50 text-emerald-700 ring-emerald-200 whitespace-nowrap`;
   if (s.includes("closed") || s.includes("await") || s.includes("request"))
-    return `${base} bg-amber-50 text-amber-800 ring-amber-200`;
+    return `${base} bg-amber-50 text-amber-800 ring-amber-200 whitespace-nowrap`;
   if (s.includes("resolved") || s.includes("settled"))
-    return `${base} bg-slate-100 text-slate-800 ring-slate-200`;
+    return `${base} bg-slate-100 text-slate-800 ring-slate-200 whitespace-nowrap`;
 
-  return `${base} bg-slate-50 text-slate-700 ring-slate-200`;
+  return `${base} bg-slate-50 text-slate-700 ring-slate-200 whitespace-nowrap`;
 };
