@@ -18,8 +18,10 @@ export const Banner = ({
 
   return (
     <div className={`rounded-xl border p-4 text-sm ${styles}`}>
-      <div className="font-semibold">{title}</div>
-      {children ? <div className="mt-1 opacity-90">{children}</div> : null}
+      <div className="font-semibold break-words">{title}</div>
+      {children ? (
+        <div className="mt-1 opacity-90 break-words">{children}</div>
+      ) : null}
     </div>
   );
 };

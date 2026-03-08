@@ -83,7 +83,6 @@ export const normalizeAirLabsFlight = (args: {
   departTs: number;
   matchWindowSeconds: number;
 
-  //@todo remove delayMetric, always departure
   delayMetric: "dep" | "arr" | "any";
   resp: FlightAPIResponse;
 }): NormalizedFlightStatus => {

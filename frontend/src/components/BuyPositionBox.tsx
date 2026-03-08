@@ -152,7 +152,7 @@ export function BuyPositionBox(props: {
 
       {/* tx messages */}
       {buy.error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 break-words">
           Wallet error: {buy.error.message}
         </div>
       ) : null}

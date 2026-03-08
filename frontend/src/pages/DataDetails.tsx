@@ -15,7 +15,7 @@ interface SettlementDoc {
   flightId: string;
 }
 
-const ITEMS_LIMIT = 10;
+const ITEMS_LIMIT = 100;
 
 const truncateHash = (hash: string) => {
   if (
@@ -140,15 +140,6 @@ export const DataDetails = () => {
                 </p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
                   {loading ? "..." : delayedCount}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                  Limit
-                </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {ITEMS_LIMIT}
                 </p>
               </div>
             </div>

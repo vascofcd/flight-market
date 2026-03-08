@@ -17258,13 +17258,12 @@ var onSettlementRequested = (runtime2, log) => {
   }
   runtime2.log(`Settling Flight Market contract at: ${runtime2.config.flightMarketAddr}`);
   const evmClient = new ClientCapability(network248.chainSelector.selector);
-  runtime2.log(`Writing report — marketId: ${marketId}`);
+  runtime2.log(`Waiting for write report... (marketId: ${marketId})`);
   const writeResult = evmClient.writeReport(runtime2, {
     receiver: runtime2.config.flightMarketAddr,
     report: reportResponse,
     gasConfig: { gasLimit: runtime2.config.gasLimit }
   }).result();
-  runtime2.log("Waiting for write report response");
   const txHashHex = bytesToHex(writeResult.txHash ?? new Uint8Array(32));
   const errorMessage = String(writeResult.errorMessage ?? "");
   runtime2.log(`Write report tx hash: ${txHashHex}`);
