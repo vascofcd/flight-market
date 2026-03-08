@@ -107,17 +107,16 @@ export const DataDetails = () => {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-8">
+    // <main className="min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-900">
+      <div>
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-sky-600">
-                Settlement Feed
-              </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight">
-                Recent Market Settlements
-              </h1>
+              <h2 className="text-xl font-semibold tracking-tight">
+                {" "}
+                Settlement feed
+              </h2>
+
               <p className="mt-2 max-w-2xl text-sm text-slate-600">
                 Latest settlement records fetched from Firestore, including
                 flight ID, delay result, response code, transaction hash, and
@@ -302,6 +301,6 @@ export const DataDetails = () => {
           ) : null}
         </section>
       </div>
-    </main>
+    // </main>
   );
 };

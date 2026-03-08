@@ -183,7 +183,7 @@ export function CreateMarketForm() {
       ) : null}
 
       {formError ? (
-        <Banner tone="error" title="Fix form errors">
+        <Banner tone="warn" title="Warning">
           {formError}
         </Banner>
       ) : null}
@@ -209,7 +209,7 @@ export function CreateMarketForm() {
       ) : null}
 
       {isConfirmed ? (
-        <Banner tone="success" title="Confirmed ✅">
+        <Banner tone="success" title="Confirmed">
           Your market creation transaction is confirmed.
         </Banner>
       ) : null}
